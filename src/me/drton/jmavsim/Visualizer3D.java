@@ -35,7 +35,7 @@ import java.util.prefs.Preferences;
  * 3D Visualizer, works in own thread, synchronized with "world" thread.
  */
 public class Visualizer3D extends JFrame {
-    public static enum ViewTypes { VIEW_STATIC, VIEW_FPV, VIEW_GIMBAL }
+    public static enum ViewTypes { VIEW_STATIC, VIEW_FPV, VIEW_GIMBAL, VIEW_EXTERNAL }
     public static enum ZoomModes { ZOOM_NONE, ZOOM_DYNAMIC, ZOOM_FIXED }
     public static final double PI_2 = Math.PI / 2d;
 
@@ -667,6 +667,16 @@ public class Visualizer3D extends JFrame {
                     System.out.println("Unable to set view, gimbal not mounted.");
                 }
                 break;
+
+            case VIEW_EXTERNAL :
+                // Chase camera: follows vehicle from behind and above, looking at it
+                if (this.viewType != ViewTypes.VIEW_EXTERNAL && vehicleViewObject != null) {
+                    this.viewType = ViewTypes.VIEW_EXTERNAL;
+                    this.setViewerPositionObject(null);  // Will be handled specially in updateVisualizer
+                    this.setViewerTargetObject(vehicleViewObject);
+                    this.setViewerPositionOffset(new Vector3d(-5.0, 0.0, -2.0));  // Behind and above
+                }
+                break;
         }
     }
 
@@ -722,6 +732,32 @@ public class Visualizer3D extends JFrame {
                     tmp_m3d2.rotZ(PI_2);
                     tmp_m3d1.mul(tmp_m3d2);
                     tmp_m3d2.rotX(-PI_2);
+                    tmp_m3d1.mul(tmp_m3d2);
+                    viewerTransform.setRotation(tmp_m3d1);
+                } else if (viewType == ViewTypes.VIEW_EXTERNAL && viewerTargetObject != null) {
+                    // External chase camera: follows vehicle from behind, looking at it
+                    tmp_v3d = viewerTargetObject.getPosition();
+
+                    // Get vehicle yaw angle from rotation matrix
+                    Matrix3d vehicleRot = viewerTargetObject.getRotation();
+                    double yaw = Math.atan2(vehicleRot.m10, vehicleRot.m00);
+
+                    // Calculate camera position: vehicle position + rotated offset (follows behind vehicle)
+                    double offsetX = viewerPositionOffset.x * Math.cos(yaw) - viewerPositionOffset.y * Math.sin(yaw);
+                    double offsetY = viewerPositionOffset.x * Math.sin(yaw) + viewerPositionOffset.y * Math.cos(yaw);
+                    viewerPosition.set(tmp_v3d.x + offsetX, tmp_v3d.y + offsetY, tmp_v3d.z + viewerPositionOffset.z);
+                    viewerTransform.setTranslation(viewerPosition);
+
+                    // Point camera at vehicle
+                    dist = getVectorToTargetObject(viewerPosition, viewerTargetObject).length();
+                    tmp_m3d1.rotZ(Math.PI);
+                    tmp_m3d2.rotY(PI_2);
+                    tmp_m3d1.mul(tmp_m3d2);
+                    tmp_m3d2.rotZ(-PI_2);
+                    tmp_m3d1.mul(tmp_m3d2);
+                    tmp_m3d2.rotY(-Math.atan2(tmp_v3d.y - viewerPosition.y, tmp_v3d.x - viewerPosition.x));
+                    tmp_m3d1.mul(tmp_m3d2);
+                    tmp_m3d2.rotX(-Math.asin((tmp_v3d.z - viewerPosition.z) / dist));
                     tmp_m3d1.mul(tmp_m3d2);
                     viewerTransform.setRotation(tmp_m3d1);
                 } else if (viewerTargetObject != null) {
@@ -1132,6 +1168,10 @@ public class Visualizer3D extends JFrame {
 
                 case KeyEvent.VK_G :
                     setViewType(ViewTypes.VIEW_GIMBAL);
+                    break;
+
+                case KeyEvent.VK_E :
+                    setViewType(ViewTypes.VIEW_EXTERNAL);
                     break;
 
                 // reporting panel
