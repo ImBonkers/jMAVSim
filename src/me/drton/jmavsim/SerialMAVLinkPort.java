@@ -57,6 +57,8 @@ public class SerialMAVLinkPort extends MAVLinkPort {
         try {
             serialPort.openPort();
             serialPort.setParams(baudRate, dataBits, stopBits, parity);
+            serialPort.setDTR(true);
+            serialPort.setRTS(true);
         } catch (SerialPortException e) {
             serialPort = null;
             throw new IOException(e);
