@@ -1,0 +1,14 @@
+{
+  "name": "simple_takeoff_test",
+  "description": "Simple arm and takeoff test",
+  "globalTimeoutSeconds": 150,
+  "steps": [
+    { "type": "reboot", "timeoutSeconds": 45 },
+    { "type": "wait", "durationSeconds": 15 },
+    { "type": "arm", "timeoutSeconds": 30 },
+    { "type": "takeoff", "altitude": 5.0, "tolerance": 1.0, "timeoutSeconds": 45 },
+    { "type": "hover", "durationSeconds": 5, "maxDrift": 1.0, "timeoutSeconds": 20 },
+    { "type": "land", "timeoutSeconds": 45 },
+    { "type": "disarm", "timeoutSeconds": 15 }
+  ]
+}

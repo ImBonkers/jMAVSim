@@ -6,6 +6,7 @@ import me.drton.jmavsim.Visualizer3D.ViewTypes;
 import me.drton.jmavsim.Visualizer3D.ZoomModes;
 import me.drton.jmavsim.vehicle.AbstractMulticopter;
 import me.drton.jmavsim.vehicle.Quadcopter;
+import me.drton.jmavsim.test.*;
 
 import org.xml.sax.SAXException;
 
@@ -127,6 +128,11 @@ public class Simulator implements Runnable {
     private static HashSet<Integer> monitorMessageIds = new HashSet<Integer>();
     private static boolean monitorMessage = false;
 
+    // Test scenario settings
+    private static String testScenarioPath = null;
+    private static String testOutputDir = null;
+    private static boolean testKeepRunning = false;
+
 
     private Visualizer3D visualizer;
     private AbstractMulticopter vehicle;
@@ -139,6 +145,10 @@ public class Simulator implements Runnable {
     private World world;
     private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private SystemOutHandler outputHandler;
+
+    // Test scenario components
+    private TestScenarioRunner testRunner;
+    private int testExitCode = 0;
 //  private int simDelayMax = 500;  // Max delay between simulated and real time to skip samples in simulator, in ms
 
     private long simTimeUs = 0;
@@ -362,6 +372,43 @@ public class Simulator implements Runnable {
             visualizer.toggleReportPanel(GUI_SHOW_REPORT_PANEL);
         }
 
+        // Set up test scenario if specified
+        if (testScenarioPath != null) {
+            try {
+                TestScenario scenario = ScenarioLoader.load(testScenarioPath);
+                System.out.println("Loaded test scenario: " + scenario.getName() +
+                                   " (" + scenario.getStepCount() + " steps)");
+
+                // Create state monitor and command sender
+                StateMonitor stateMonitor = new StateMonitor(schema);
+                CommandSender commandSender = new CommandSender(schema, 255, 190);
+
+                // Add to MAVLink connection
+                connHIL.addNode(stateMonitor);
+                connHIL.addNode(commandSender);
+
+                // Create test runner
+                testRunner = new TestScenarioRunner(world, scenario, stateMonitor,
+                                                     commandSender, testOutputDir);
+                world.addObject(testRunner);
+
+                // Set up completion callback
+                final Simulator sim = this;
+                testRunner.setOnComplete(() -> {
+                    testExitCode = testRunner.getExitCode();
+                    if (!testKeepRunning) {
+                        sim.shutdown = true;
+                    } else {
+                        System.out.println("\nTest complete. Simulator still running (use ESC or close window to exit).");
+                    }
+                });
+
+            } catch (IOException e) {
+                System.err.println("ERROR: Failed to load test scenario: " + e.getMessage());
+                shutdown = true;
+            }
+        }
+
         // Open ports
         try {
             autopilotMavLinkPort.open();
@@ -431,6 +478,10 @@ public class Simulator implements Runnable {
             }
         }
 
+        // Exit with test exit code if running a test scenario
+        if (testScenarioPath != null) {
+            System.exit(testExitCode);
+        }
         System.exit(0);
 
     }
@@ -644,6 +695,9 @@ public class Simulator implements Runnable {
     public final static String LOCKSTEP_STRING = "-lockstep";
     public final static String DISPLAY_ONLY_STRING = "-disponly";
     public final static String VEHICLE_MODEL_STRING = "-fw, -ts or -mc";
+    public final static String TEST_STRING = "-test <scenario.json>";
+    public final static String TEST_OUTPUT_STRING = "-test-output <dir>";
+    public final static String TEST_KEEP_RUNNING_STRING = "-test-keep-running";
     public final static String CMD_STRING =
         "java [-Xmx512m] -cp lib/*:out/production/jmavsim.jar me.drton.jmavsim.Simulator";
     public final static String CMD_STRING_JAR = "java [-Xmx512m] -jar jmavsim_run.jar";
@@ -663,7 +717,9 @@ public class Simulator implements Runnable {
                                               REP_STRING + "] [" +
                                               PRINT_INDICATION_STRING + "] [" +
                                               DISPLAY_ONLY_STRING + "] [" +
-                                              VEHICLE_MODEL_STRING + "]";
+                                              VEHICLE_MODEL_STRING + "] [" +
+                                              TEST_STRING + "] [" +
+                                              TEST_OUTPUT_STRING + "]";
 
     public static void main(String[] args)
     throws InterruptedException, IOException {
@@ -922,6 +978,22 @@ public class Simulator implements Runnable {
             	vehicle_model = VEHICLE_MODEL_MC;
             } else if (arg.equalsIgnoreCase("-ts")) {
             	vehicle_model = VEHICLE_MODEL_TS;
+            } else if (arg.equals("-test")) {
+                if (i < args.length) {
+                    testScenarioPath = args[i++];
+                } else {
+                    System.err.println("-test requires scenario file path as an argument.");
+                    return;
+                }
+            } else if (arg.equals("-test-output")) {
+                if (i < args.length) {
+                    testOutputDir = args[i++];
+                } else {
+                    System.err.println("-test-output requires directory path as an argument.");
+                    return;
+                }
+            } else if (arg.equals("-test-keep-running")) {
+                testKeepRunning = true;
             } else {
                 System.err.println("Unknown flag: " + arg + ", usage: " + USAGE_STRING);
                 return;
@@ -1004,6 +1076,16 @@ public class Simulator implements Runnable {
         System.out.println("      -mc will display a multicopter, this is the default vehicle.");
         System.out.println("      -fw will display a fixed wing aircraft.");
         System.out.println("      -ts will display a tailsitter aircraft.");
+        System.out.println(TEST_STRING);
+        System.out.println("      Run a test scenario from JSON file.");
+        System.out.println("      The scenario defines a sequence of flight operations to execute");
+        System.out.println("      and validate against the connected autopilot.");
+        System.out.println(TEST_OUTPUT_STRING);
+        System.out.println("      Output directory for test results JSON file.");
+        System.out.println("      If not specified, only console output is produced.");
+        System.out.println(TEST_KEEP_RUNNING_STRING);
+        System.out.println("      Keep the simulator running after test completion.");
+        System.out.println("      Useful for observing final state or debugging.");
         System.out.println("");
         System.out.println("Key commands (in the visualizer window):");
         System.out.println("");

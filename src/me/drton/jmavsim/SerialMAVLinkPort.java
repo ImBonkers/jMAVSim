@@ -27,6 +27,14 @@ public class SerialMAVLinkPort extends MAVLinkPort {
     int stopBits;
     int parity;
 
+    // reconnection support
+    private boolean autoReconnect = true;
+    private long lastReconnectAttempt = 0;
+    private static final long RECONNECT_INTERVAL_MS = 500;
+    private boolean disconnectReported = false;
+    private long lastDataReceived = 0;
+    private static final long DATA_TIMEOUT_MS = 2000;
+
     public SerialMAVLinkPort(MAVLinkSchema schema) {
         super(schema);
         this.schema = schema;
@@ -124,20 +132,88 @@ public class SerialMAVLinkPort extends MAVLinkPort {
         return serialPort != null && serialPort.isOpened();
     }
 
+    /**
+     * Enable or disable auto-reconnection on disconnect.
+     */
+    public void setAutoReconnect(boolean autoReconnect) {
+        this.autoReconnect = autoReconnect;
+    }
+
+    /**
+     * Attempt to reconnect to the serial port.
+     * @return true if reconnection successful
+     */
+    private boolean tryReconnect() {
+        // Close existing port if any
+        if (serialPort != null) {
+            try {
+                serialPort.closePort();
+            } catch (SerialPortException e) {
+                // Ignore
+            }
+            serialPort = null;
+            channel = null;
+            stream = null;
+        }
+
+        // Check if port exists (works for /dev/ttyACM* on Linux)
+        java.io.File portFile = new java.io.File(portName);
+        if (!portFile.exists()) {
+            // Debug: uncomment to see reconnect attempts
+            // System.out.println("SerialMAVLinkPort: Port " + portName + " not found, waiting...");
+            return false;
+        }
+
+        // Try to open
+        try {
+            open();
+            System.out.println("SerialMAVLinkPort: Reconnected to " + portName);
+            return true;
+        } catch (IOException e) {
+            System.out.println("SerialMAVLinkPort: Reconnect failed: " + e.getMessage());
+            return false;
+        }
+    }
+
     @Override
     public void handleMessage(MAVLinkMessage msg) {
         if (isOpened() && stream != null) {
             try {
                 stream.write(msg);
             } catch (Exception e) {
-                e.printStackTrace();
+                System.err.println("SerialMAVLinkPort: Write error, triggering reconnect: " + e.getMessage());
+                // Close the port - will trigger reconnect on next update
+                try {
+                    close();
+                } catch (IOException ex) {
+                    // Ignore
+                }
             }
         }
     }
 
     @Override
     public void update(long t, boolean paused) {
+        // Handle reconnection if disconnected
+        if (!isOpened()) {
+            if (!disconnectReported) {
+                System.out.println("SerialMAVLinkPort: Disconnected from " + portName + ", attempting to reconnect...");
+                disconnectReported = true;
+            }
+            if (autoReconnect) {
+                long now = System.currentTimeMillis();
+                if (now - lastReconnectAttempt > RECONNECT_INTERVAL_MS) {
+                    lastReconnectAttempt = now;
+                    if (tryReconnect()) {
+                        disconnectReported = false;
+                    }
+                }
+            }
+            return;
+        }
+
         MAVLinkMessage msg;
+        boolean receivedData = false;
         while (isOpened() && stream != null) {
             try {
                 msg = stream.read();
@@ -146,10 +222,32 @@ public class SerialMAVLinkPort extends MAVLinkPort {
                 }
                 msg.forwarded = true;
                 sendMessage(msg);
+                receivedData = true;
             } catch (IOException e) {
-                e.printStackTrace();
+                System.err.println("SerialMAVLinkPort: Read error, will attempt reconnect: " + e.getMessage());
+                // Close the port - will trigger reconnect on next update
+                try {
+                    close();
+                } catch (IOException ex) {
+                    // Ignore
+                }
                 return;
             }
+        }
+
+        // Track data reception for timeout detection
+        long now = System.currentTimeMillis();
+        if (receivedData) {
+            lastDataReceived = now;
+        } else if (lastDataReceived > 0 && (now - lastDataReceived) > DATA_TIMEOUT_MS) {
+            // No data received for too long - force reconnect
+            System.out.println("SerialMAVLinkPort: No data received for " + DATA_TIMEOUT_MS + "ms, forcing reconnect");
+            try {
+                close();
+            } catch (IOException ex) {
+                // Ignore
+            }
+            lastDataReceived = 0;
         }
     }
 

@@ -204,6 +204,8 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
         sensor_source |= 0b111000000;
         msg_sensor.set("pressure_alt", sensors.getPressureAlt());
         msg_sensor.set("abs_pressure", sensors.getPressure() * 0.01);  // Pa to millibar
+        msg_sensor.set("diff_pressure", 0.0f);  // No airspeed sensor in HIL
+        msg_sensor.set("temperature", 25.0f);   // Ambient temperature in degC
         sensor_source |= 0b1101000000000;
         if (sensors.isReset()) {
             msg_sensor.set("fields_updated", (1 << 31));
@@ -211,6 +213,7 @@ public class MAVLinkHILSystem extends MAVLinkHILSystemBase {
         } else {
             msg_sensor.set("fields_updated", sensor_source);
         }
+        msg_sensor.set("id", 0);  // Sensor ID for PX4 1.14+
         sendMessage(msg_sensor);
 
         /* ground truth */

@@ -1,0 +1,30 @@
+{
+  "name": "wind_disturbance_test",
+  "description": "Validate flight stability under various wind conditions",
+  "globalTimeoutSeconds": 240,
+  "steps": [
+    { "type": "arm", "timeoutSeconds": 15 },
+    { "type": "takeoff", "altitude": 8.0, "tolerance": 0.5, "timeoutSeconds": 30 },
+
+    { "type": "hover", "durationSeconds": 5, "maxDrift": 0.3, "timeoutSeconds": 15 },
+
+    { "type": "setWind", "x": 5, "y": 0, "z": 0 },
+    { "type": "wait", "durationSeconds": 2 },
+    { "type": "hover", "durationSeconds": 5, "maxDrift": 0.8, "timeoutSeconds": 15 },
+
+    { "type": "setWind", "x": 0, "y": 5, "z": 0 },
+    { "type": "wait", "durationSeconds": 2 },
+    { "type": "hover", "durationSeconds": 5, "maxDrift": 0.8, "timeoutSeconds": 15 },
+
+    { "type": "setWind", "x": 3, "y": 3, "z": 0 },
+    { "type": "wait", "durationSeconds": 2 },
+    { "type": "hover", "durationSeconds": 5, "maxDrift": 1.0, "timeoutSeconds": 15 },
+
+    { "type": "setWind", "x": 0, "y": 0, "z": 0 },
+    { "type": "wait", "durationSeconds": 2 },
+    { "type": "hover", "durationSeconds": 3, "maxDrift": 0.3, "timeoutSeconds": 10 },
+
+    { "type": "land", "timeoutSeconds": 30 },
+    { "type": "disarm", "timeoutSeconds": 10 }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "waypoint_mission_test",
+  "description": "Validate waypoint navigation with multiple goto commands",
+  "globalTimeoutSeconds": 300,
+  "steps": [
+    { "type": "arm", "timeoutSeconds": 15 },
+    { "type": "takeoff", "altitude": 10.0, "tolerance": 0.5, "timeoutSeconds": 30 },
+    { "type": "hover", "durationSeconds": 3, "maxDrift": 0.5, "timeoutSeconds": 10 },
+    { "type": "goto", "x": 20, "y": 0, "z": -10, "tolerance": 1.0, "timeoutSeconds": 45 },
+    { "type": "goto", "x": 20, "y": 20, "z": -10, "tolerance": 1.0, "timeoutSeconds": 45 },
+    { "type": "goto", "x": 0, "y": 20, "z": -10, "tolerance": 1.0, "timeoutSeconds": 45 },
+    { "type": "goto", "x": 0, "y": 0, "z": -10, "tolerance": 1.0, "timeoutSeconds": 45 },
+    { "type": "hover", "durationSeconds": 5, "maxDrift": 0.5, "timeoutSeconds": 15 },
+    { "type": "land", "timeoutSeconds": 30 },
+    { "type": "disarm", "timeoutSeconds": 10 }
+  ]
+}
