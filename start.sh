@@ -1,0 +1,1 @@
+java --add-opens java.desktop/sun.awt=ALL-UNNAMED --add-opens java.desktop/sun.java2d=ALL-UNNAMED --enable-native-access=ALL-UNNAMED -jar out/production/jmavsim_run.jar -serial /dev/ttyACM0 230400 -test scenarios/simple_takeoff.json -test-keep-running
