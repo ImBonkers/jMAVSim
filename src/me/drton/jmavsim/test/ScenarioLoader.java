@@ -53,6 +53,10 @@ public class ScenarioLoader {
                     Map<String, Object> stepMap = (Map<String, Object>) stepObj;
                     TestStep step = parseStep(stepMap);
                     if (step != null) {
+                        // Parse optional 'critical' override (default depends on step type)
+                        if (stepMap.containsKey("critical")) {
+                            step.setCritical(Boolean.TRUE.equals(stepMap.get("critical")));
+                        }
                         scenario.addStep(step);
                     }
                 }
@@ -86,7 +90,8 @@ public class ScenarioLoader {
             case "takeoff": {
                 double altitude = toDouble(stepMap.getOrDefault("altitude", 5.0));
                 double tolerance = toDouble(stepMap.getOrDefault("tolerance", 0.5));
-                return new TakeoffStep(altitude, tolerance, timeout);
+                double settle = toDouble(stepMap.getOrDefault("settleSeconds", 2.0));
+                return new TakeoffStep(altitude, tolerance, timeout, settle);
             }
 
             case "hover": {
@@ -100,11 +105,14 @@ public class ScenarioLoader {
                 double y = toDouble(stepMap.getOrDefault("y", 0.0));
                 double z = toDouble(stepMap.getOrDefault("z", 0.0));
                 double tolerance = toDouble(stepMap.getOrDefault("tolerance", 1.0));
-                return new GotoStep(x, y, z, tolerance, timeout);
+                double settle = toDouble(stepMap.getOrDefault("settleSeconds", 2.0));
+                return new GotoStep(x, y, z, tolerance, timeout, settle);
             }
 
-            case "land":
-                return new LandStep(timeout);
+            case "land": {
+                double settle = toDouble(stepMap.getOrDefault("settleSeconds", 2.0));
+                return new LandStep(timeout, settle);
+            }
 
             case "setwind": {
                 double x = toDouble(stepMap.getOrDefault("x", 0.0));

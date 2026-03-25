@@ -14,6 +14,7 @@ public class WaitStep extends TestStep {
     public WaitStep(double durationSeconds) {
         super("wait", durationSeconds + 1.0);  // Timeout slightly longer than duration
         this.durationSeconds = durationSeconds;
+        this.critical = false;  // Wait steps are non-critical by default
     }
 
     @Override

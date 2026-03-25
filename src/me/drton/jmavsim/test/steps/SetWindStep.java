@@ -24,6 +24,7 @@ public class SetWindStep extends TestStep {
         this.windY = y;
         this.windZ = z;
         this.environment = null;
+        this.critical = false;  // Wind setting is non-critical by default
     }
 
     /**

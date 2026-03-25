@@ -160,20 +160,34 @@ public class TestScenarioRunner extends WorldObject {
 
         // Check completion
         if (currentStep.checkComplete(vehicleState)) {
-            // Step completed successfully
-            if (currentStep instanceof SetWindStep) {
-                // SetWind is instantaneous - special handling
-            }
             reporter.printStepResult(currentStep, currentStepIndex);
+            // If the step marked itself failed during checkComplete, handle it
+            if (currentStep.isFailed() && currentStep.isCritical()) {
+                System.err.println("ERROR: Critical step [" + currentStep.getType() +
+                        "] failed — aborting scenario");
+                state = State.FAILED;
+                exitCode = 1;
+                reporter.printSummary();
+                invokeCallback();
+                return;
+            }
             advanceToNextStep(currentTime);
             return;
         }
 
         // Check timeout
         if (currentStep.checkTimeout(currentTime)) {
-            currentStep.markFailed("Timeout");
+            currentStep.markFailed("Timeout — condition never met");
             reporter.printStepResult(currentStep, currentStepIndex);
-            // Continue to next step or fail scenario based on step type
+            if (currentStep.isCritical()) {
+                System.err.println("ERROR: Critical step [" + currentStep.getType() +
+                        "] failed — aborting scenario");
+                state = State.FAILED;
+                exitCode = 1;
+                reporter.printSummary();
+                invokeCallback();
+                return;
+            }
             advanceToNextStep(currentTime);
             return;
         }

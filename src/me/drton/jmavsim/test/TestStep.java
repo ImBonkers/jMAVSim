@@ -13,6 +13,7 @@ public abstract class TestStep {
     protected boolean failed;
     protected String failureReason;
     protected String resultDetails;
+    protected boolean critical;
 
     public TestStep(String type, double timeoutSeconds) {
         this.type = type;
@@ -23,6 +24,7 @@ public abstract class TestStep {
         this.failed = false;
         this.failureReason = null;
         this.resultDetails = null;
+        this.critical = true;  // Default: steps are critical (abort on failure)
     }
 
     /**
@@ -72,6 +74,20 @@ public abstract class TestStep {
      */
     public String getResultDetails() {
         return resultDetails;
+    }
+
+    /**
+     * Check if this step is critical (should abort scenario on failure)
+     */
+    public boolean isCritical() {
+        return critical;
+    }
+
+    /**
+     * Set whether this step is critical
+     */
+    public void setCritical(boolean critical) {
+        this.critical = critical;
     }
 
     /**
