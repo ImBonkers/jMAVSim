@@ -35,6 +35,10 @@ public class StreamRateMonitor {
     public static final int MSG_ESTIMATOR_STATUS = 230;
     public static final int MSG_HIGHRES_IMU = 105;
     public static final int MSG_VIBRATION = 241;
+    public static final int MSG_HIL_ACTUATOR_CONTROLS = 93;
+
+    /** Observe-only streams: track rate + jitter but don't request */
+    private final Map<Integer, RateTracker> observeOnly = new HashMap<>();
 
     public StreamRateMonitor() {
         // Default desired rates for thesis data capture
@@ -45,6 +49,16 @@ public class StreamRateMonitor {
         setDesiredRate(MSG_ESTIMATOR_STATUS, 5);
         setDesiredRate(MSG_HIGHRES_IMU, 50);
         setDesiredRate(MSG_VIBRATION, 2);
+
+        // Observe control loop rate (driven by FC, not requestable)
+        trackOnly(MSG_HIL_ACTUATOR_CONTROLS);
+    }
+
+    /**
+     * Track message rate without requesting — for FC-driven streams.
+     */
+    public void trackOnly(int msgId) {
+        observeOnly.put(msgId, new RateTracker());
     }
 
     /**
@@ -66,6 +80,11 @@ public class StreamRateMonitor {
         RateTracker tracker = trackers.get(msgId);
         if (tracker != null) {
             tracker.recordArrival();
+        }
+
+        RateTracker obs = observeOnly.get(msgId);
+        if (obs != null) {
+            obs.recordArrival();
         }
     }
 
@@ -116,7 +135,26 @@ public class StreamRateMonitor {
      */
     public double getObservedRate(int msgId) {
         RateTracker tracker = trackers.get(msgId);
+        if (tracker == null) tracker = observeOnly.get(msgId);
         return (tracker != null && tracker.count >= MIN_SAMPLES) ? tracker.getRate() : 0.0;
+    }
+
+    /**
+     * Get jitter (stddev of inter-arrival times) for a tracked message.
+     */
+    public double getJitterMs(int msgId) {
+        RateTracker tracker = trackers.get(msgId);
+        if (tracker == null) tracker = observeOnly.get(msgId);
+        return (tracker != null) ? tracker.getJitterMs() : 0.0;
+    }
+
+    /**
+     * Get maximum inter-arrival gap for a tracked message.
+     */
+    public double getMaxGapMs(int msgId) {
+        RateTracker tracker = trackers.get(msgId);
+        if (tracker == null) tracker = observeOnly.get(msgId);
+        return (tracker != null) ? tracker.maxGapMs : 0.0;
     }
 
     /**
@@ -130,9 +168,17 @@ public class StreamRateMonitor {
             double desiredHz = 1e6 / entry.getValue();
             double observedHz = getObservedRate(msgId);
             String name = getMessageName(msgId);
-            sb.append(String.format("  %-25s desired=%.0f Hz, observed=%.1f Hz%s\n",
-                name, desiredHz, observedHz,
+            sb.append(String.format("  %-25s desired=%5.0f Hz, observed=%6.1f Hz, jitter=%5.1f ms%s\n",
+                name, desiredHz, observedHz, getJitterMs(msgId),
                 observedHz > 0 && Math.abs(observedHz - desiredHz) / desiredHz > TOLERANCE ? " [MISMATCH]" : ""));
+        }
+        sb.append("Control loop:\n");
+        for (Map.Entry<Integer, RateTracker> entry : observeOnly.entrySet()) {
+            int msgId = entry.getKey();
+            RateTracker t = entry.getValue();
+            String name = getMessageName(msgId);
+            sb.append(String.format("  %-25s rate=%.1f Hz, jitter=%.2f ms, max_gap=%.1f ms, n=%d\n",
+                name, t.getRate(), t.getJitterMs(), t.maxGapMs, t.count));
         }
         return sb.toString();
     }
@@ -146,6 +192,7 @@ public class StreamRateMonitor {
             case MSG_ESTIMATOR_STATUS: return "ESTIMATOR_STATUS (230)";
             case MSG_HIGHRES_IMU: return "HIGHRES_IMU (105)";
             case MSG_VIBRATION: return "VIBRATION (241)";
+            case MSG_HIL_ACTUATOR_CONTROLS: return "HIL_ACTUATOR_CTRL (93)";
             default: return "MSG_" + msgId;
         }
     }
@@ -156,11 +203,25 @@ public class StreamRateMonitor {
         long lastSeen;
         int count;
         long lastRequestTime;
+        double maxGapMs;
+        // Running variance (Welford's algorithm)
+        private double m2;
+        private double mean;
+        private int jitterCount;
 
         void recordArrival() {
             long now = System.currentTimeMillis();
             if (count == 0) {
                 firstSeen = now;
+            } else {
+                double gap = now - lastSeen;
+                if (gap > maxGapMs) maxGapMs = gap;
+                // Update running variance
+                jitterCount++;
+                double delta = gap - mean;
+                mean += delta / jitterCount;
+                double delta2 = gap - mean;
+                m2 += delta * delta2;
             }
             lastSeen = now;
             count++;
@@ -170,6 +231,11 @@ public class StreamRateMonitor {
             if (count < 2) return 0;
             double elapsed = (lastSeen - firstSeen) / 1000.0;
             return elapsed > 0 ? (count - 1) / elapsed : 0;
+        }
+
+        double getJitterMs() {
+            if (jitterCount < 2) return 0;
+            return Math.sqrt(m2 / (jitterCount - 1));
         }
     }
 }
