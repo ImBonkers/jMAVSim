@@ -15,6 +15,20 @@ public class CommandSender extends MAVLinkSystem {
     private static final int MAV_CMD_DO_SET_MODE = 176;
     private static final int MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN = 246;
     private static final int MAV_CMD_SET_MESSAGE_INTERVAL = 511;
+    private static final int MAV_CMD_DO_ORBIT = 34;
+
+    // PX4 custom_mode encoding: (sub_mode << 24) | (main_mode << 16)
+    private static final int PX4_MAIN_MODE_MANUAL = 1;
+    private static final int PX4_MAIN_MODE_ALTITUDE = 2;
+    private static final int PX4_MAIN_MODE_POSITION = 3;
+    private static final int PX4_MAIN_MODE_AUTO = 4;
+    private static final int PX4_MAIN_MODE_OFFBOARD = 6;
+    private static final int PX4_SUB_MODE_AUTO_READY = 1;
+    private static final int PX4_SUB_MODE_AUTO_TAKEOFF = 2;
+    private static final int PX4_SUB_MODE_AUTO_LOITER = 3;
+    private static final int PX4_SUB_MODE_AUTO_MISSION = 4;
+    private static final int PX4_SUB_MODE_AUTO_RTL = 5;
+    private static final int PX4_SUB_MODE_AUTO_LAND = 6;
 
     // SET_POSITION_TARGET_LOCAL_NED type mask bits
     private static final int POSITION_TARGET_TYPEMASK_X_IGNORE = 1;
@@ -38,6 +52,10 @@ public class CommandSender extends MAVLinkSystem {
     private volatile int lastAckCommand;
     private volatile int lastAckResult;
 
+    // Last PARAM_VALUE received
+    private volatile String lastParamId;
+    private volatile float lastParamValue;
+
     public CommandSender(MAVLinkSchema schema, int sysId, int componentId) {
         super(schema, sysId, componentId);
         this.targetSysId = 1;  // Default autopilot system ID
@@ -45,6 +63,8 @@ public class CommandSender extends MAVLinkSystem {
         this.commandSequence = 0;
         this.lastAckCommand = -1;
         this.lastAckResult = -1;
+        this.lastParamId = null;
+        this.lastParamValue = 0;
         // Disable heartbeat from command sender
         setHeartbeatInterval(0);
     }
@@ -53,6 +73,27 @@ public class CommandSender extends MAVLinkSystem {
      * Check if a COMMAND_ACK was received for the given command ID with MAV_RESULT_ACCEPTED.
      * Clears the stored ACK after reading (consume-once).
      */
+    /**
+     * Get the last received param ID, or null.
+     */
+    public String getLastParamId() {
+        return lastParamId;
+    }
+
+    /**
+     * Get the last received param value.
+     */
+    public float getLastParamValue() {
+        return lastParamValue;
+    }
+
+    /**
+     * Clear the last param value (consume-once pattern).
+     */
+    public void clearLastParam() {
+        lastParamId = null;
+    }
+
     public boolean consumeAck(int commandId) {
         if (lastAckCommand == commandId && lastAckResult == 0) {
             lastAckCommand = -1;
@@ -183,6 +224,105 @@ public class CommandSender extends MAVLinkSystem {
         msg.set("custom_mode", (6 << 24) | (4 << 16));
         sendMessage(msg);
         System.out.println("CommandSender: Setting AUTO.LAND mode");
+    }
+
+    /**
+     * Set flight mode by name.
+     * Supported: MANUAL, ALTITUDE, POSITION, OFFBOARD, MISSION, RTL, LAND, TAKEOFF
+     */
+    public void setMode(String modeName) {
+        int customMode;
+        switch (modeName.toUpperCase()) {
+            case "MANUAL":
+                customMode = PX4_MAIN_MODE_MANUAL << 16;
+                break;
+            case "ALTITUDE":
+                customMode = PX4_MAIN_MODE_ALTITUDE << 16;
+                break;
+            case "POSITION":
+                customMode = PX4_MAIN_MODE_POSITION << 16;
+                break;
+            case "OFFBOARD":
+                customMode = PX4_MAIN_MODE_OFFBOARD << 16;
+                break;
+            case "MISSION":
+                customMode = (PX4_SUB_MODE_AUTO_MISSION << 24) | (PX4_MAIN_MODE_AUTO << 16);
+                break;
+            case "RTL":
+                customMode = (PX4_SUB_MODE_AUTO_RTL << 24) | (PX4_MAIN_MODE_AUTO << 16);
+                break;
+            case "LAND":
+                customMode = (PX4_SUB_MODE_AUTO_LAND << 24) | (PX4_MAIN_MODE_AUTO << 16);
+                break;
+            case "TAKEOFF":
+                customMode = (PX4_SUB_MODE_AUTO_TAKEOFF << 24) | (PX4_MAIN_MODE_AUTO << 16);
+                break;
+            case "LOITER":
+                customMode = (PX4_SUB_MODE_AUTO_LOITER << 24) | (PX4_MAIN_MODE_AUTO << 16);
+                break;
+            default:
+                System.err.println("CommandSender: Unknown mode: " + modeName);
+                return;
+        }
+        MAVLinkMessage msg = new MAVLinkMessage(schema, "SET_MODE", sysId, componentId, protocolVersion);
+        msg.set("target_system", targetSysId);
+        msg.set("base_mode", 209);  // MAV_MODE_FLAG_CUSTOM_MODE_ENABLED | ARMED | HIL
+        msg.set("custom_mode", customMode);
+        sendMessage(msg);
+        System.out.println("CommandSender: Setting mode " + modeName);
+    }
+
+    /**
+     * Set a PX4 parameter via PARAM_SET message.
+     * @param paramId Parameter name (max 16 chars)
+     * @param value Parameter value
+     */
+    public void setParam(String paramId, float value) {
+        setParam(paramId, value, 9);  // MAV_PARAM_TYPE_REAL32
+    }
+
+    public void setParamInt(String paramId, int value) {
+        // PX4 encodes INT32 params as float with bit-reinterpretation
+        float encoded = Float.intBitsToFloat(value);
+        setParam(paramId, encoded, 6);  // MAV_PARAM_TYPE_INT32
+    }
+
+    public void setParam(String paramId, float value, int paramType) {
+        MAVLinkMessage msg = new MAVLinkMessage(schema, "PARAM_SET",
+                sysId, componentId, protocolVersion);
+        msg.set("target_system", targetSysId);
+        msg.set("target_component", targetCompId);
+        msg.set("param_id", paramId);
+        msg.set("param_value", value);
+        msg.set("param_type", paramType);
+        sendMessage(msg);
+        System.out.println("CommandSender: Setting param " + paramId + " = " + value + " (type=" + paramType + ")");
+    }
+
+    /**
+     * Request a parameter value via PARAM_REQUEST_READ.
+     */
+    public void requestParam(String paramId) {
+        MAVLinkMessage msg = new MAVLinkMessage(schema, "PARAM_REQUEST_READ",
+                sysId, componentId, protocolVersion);
+        msg.set("target_system", targetSysId);
+        msg.set("target_component", targetCompId);
+        msg.set("param_id", paramId);
+        msg.set("param_index", -1);  // Use name, not index
+        sendMessage(msg);
+    }
+
+    /**
+     * Send orbit command (MAV_CMD_DO_ORBIT).
+     * @param radius Orbit radius in meters (positive = CW, negative = CCW)
+     * @param velocity Tangential velocity in m/s
+     * @param centerX Center X (North) in local NED, NaN to orbit current position
+     * @param centerY Center Y (East) in local NED
+     * @param centerZ Center Z (Down) in local NED
+     */
+    public void orbit(float radius, float velocity, float centerX, float centerY, float centerZ) {
+        sendCommandLong(MAV_CMD_DO_ORBIT, radius, velocity, 0, Float.NaN, centerX, centerY, centerZ);
+        System.out.println("CommandSender: Sending ORBIT command r=" + radius + " v=" + velocity);
     }
 
     /**
@@ -343,6 +483,9 @@ public class CommandSender extends MAVLinkSystem {
             if (result != 0) {
                 System.err.println("CommandSender: Command " + command + " rejected with result " + result);
             }
+        } else if ("PARAM_VALUE".equals(msg.getMsgName())) {
+            lastParamId = msg.getString("param_id").trim();
+            lastParamValue = msg.getFloat("param_value");
         }
     }
 }

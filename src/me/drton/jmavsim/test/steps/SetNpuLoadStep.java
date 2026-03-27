@@ -22,7 +22,7 @@ public class SetNpuLoadStep extends TestStep {
     public void start(CommandSender commandSender, long currentTime) {
         super.start(commandSender, currentTime);
         // Set NPU load via param — board-specific parameter
-        commandSender.setParam("NPU_DUTY_PCT", (float) percent);
+        commandSender.setParamInt("NPU_DUTY_PCT", percent);
         System.out.println("SetNpuLoadStep: NPU load set to " + percent + "%");
     }
 
