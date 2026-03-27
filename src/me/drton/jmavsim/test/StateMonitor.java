@@ -6,10 +6,12 @@ import me.drton.jmavsim.MAVLinkNode;
 
 /**
  * MAVLink node that monitors incoming messages to track vehicle state.
- * Listens for HEARTBEAT, LOCAL_POSITION_NED, and ATTITUDE messages.
+ * Listens for HEARTBEAT, LOCAL_POSITION_NED, ATTITUDE, SYS_STATUS,
+ * ESTIMATOR_STATUS, VIBRATION, and SYSTEM_TIME messages.
  */
 public class StateMonitor extends MAVLinkNode {
     private final VehicleState currentState;
+    private StreamRateMonitor rateMonitor;
     private int targetSysId;
     private boolean connected;
     private long lastHeartbeatTime;
@@ -21,6 +23,10 @@ public class StateMonitor extends MAVLinkNode {
         this.targetSysId = -1;  // Auto-detect
         this.connected = false;
         this.lastHeartbeatTime = 0;
+    }
+
+    public void setRateMonitor(StreamRateMonitor monitor) {
+        this.rateMonitor = monitor;
     }
 
     /**
@@ -60,6 +66,9 @@ public class StateMonitor extends MAVLinkNode {
         currentState.hasHeartbeat = false;
         currentState.hasPosition = false;
         currentState.hasAttitude = false;
+        currentState.hasSysStatus = false;
+        currentState.hasEstimator = false;
+        currentState.hasVibration = false;
         currentState.timestamp = 0;
         connected = false;
         lastHeartbeatTime = 0;
@@ -89,12 +98,29 @@ public class StateMonitor extends MAVLinkNode {
             return;
         }
 
+        // Track message rate
+        if (rateMonitor != null) {
+            rateMonitor.messageReceived(msg.getMsgType());
+        }
+
         if ("HEARTBEAT".equals(msgName)) {
             handleHeartbeat(msg);
         } else if ("LOCAL_POSITION_NED".equals(msgName)) {
             handleLocalPositionNed(msg);
         } else if ("ATTITUDE".equals(msgName)) {
             handleAttitude(msg);
+        } else if ("SYS_STATUS".equals(msgName)) {
+            handleSysStatus(msg);
+        } else if ("ATTITUDE_TARGET".equals(msgName)) {
+            handleAttitudeTarget(msg);
+        } else if ("ESTIMATOR_STATUS".equals(msgName)) {
+            handleEstimatorStatus(msg);
+        } else if ("VIBRATION".equals(msgName)) {
+            handleVibration(msg);
+        } else if ("SYSTEM_TIME".equals(msgName)) {
+            handleSystemTime(msg);
+        } else if ("NAMED_VALUE_FLOAT".equals(msgName)) {
+            handleNamedValueFloat(msg);
         } else if ("STATUSTEXT".equals(msgName)) {
             handleStatusText(msg);
         }
@@ -157,6 +183,92 @@ public class StateMonitor extends MAVLinkNode {
             currentState.yaw = msg.getDouble("yaw");
             currentState.hasAttitude = true;
             currentState.timestamp = System.currentTimeMillis();
+        }
+    }
+
+    private void handleAttitudeTarget(MAVLinkMessage msg) {
+        synchronized (this) {
+            // quaternion [w, x, y, z]
+            float[] q = new float[4];
+            q[0] = msg.getFloat("q[0]");  // w
+            q[1] = msg.getFloat("q[1]");  // x
+            q[2] = msg.getFloat("q[2]");  // y
+            q[3] = msg.getFloat("q[3]");  // z
+            // Convert quaternion to euler
+            currentState.rollSetpoint = Math.atan2(2.0 * (q[0]*q[1] + q[2]*q[3]), 1.0 - 2.0 * (q[1]*q[1] + q[2]*q[2]));
+            currentState.pitchSetpoint = Math.asin(Math.max(-1, Math.min(1, 2.0 * (q[0]*q[2] - q[3]*q[1]))));
+            currentState.yawSetpoint = Math.atan2(2.0 * (q[0]*q[3] + q[1]*q[2]), 1.0 - 2.0 * (q[2]*q[2] + q[3]*q[3]));
+            currentState.thrustSetpoint = msg.getFloat("thrust");
+            currentState.hasAttitudeTarget = true;
+        }
+    }
+
+    private void handleSysStatus(MAVLinkMessage msg) {
+        synchronized (this) {
+            currentState.cpuLoad = msg.getInt("load");
+            currentState.commDropRate = msg.getInt("drop_rate_comm");
+            currentState.commErrors = msg.getInt("errors_comm");
+            currentState.errorsCount1 = msg.getInt("errors_count1");
+            currentState.errorsCount2 = msg.getInt("errors_count2");
+            currentState.errorsCount3 = msg.getInt("errors_count3");
+            currentState.errorsCount4 = msg.getInt("errors_count4");
+            currentState.hasSysStatus = true;
+        }
+    }
+
+    private void handleEstimatorStatus(MAVLinkMessage msg) {
+        synchronized (this) {
+            currentState.ekfFlags = msg.getInt("flags");
+            currentState.ekfVelRatio = msg.getFloat("vel_ratio");
+            currentState.ekfPosHorizRatio = msg.getFloat("pos_horiz_ratio");
+            currentState.ekfPosVertRatio = msg.getFloat("pos_vert_ratio");
+            currentState.ekfMagRatio = msg.getFloat("mag_ratio");
+            currentState.ekfPosHorizAccuracy = msg.getFloat("pos_horiz_accuracy");
+            currentState.ekfPosVertAccuracy = msg.getFloat("pos_vert_accuracy");
+            currentState.hasEstimator = true;
+        }
+    }
+
+    private void handleVibration(MAVLinkMessage msg) {
+        synchronized (this) {
+            currentState.vibrationX = msg.getFloat("vibration_x");
+            currentState.vibrationY = msg.getFloat("vibration_y");
+            currentState.vibrationZ = msg.getFloat("vibration_z");
+            currentState.clipping0 = msg.getLong("clipping_0");
+            currentState.clipping1 = msg.getLong("clipping_1");
+            currentState.clipping2 = msg.getLong("clipping_2");
+            currentState.hasVibration = true;
+        }
+    }
+
+    private void handleNamedValueFloat(MAVLinkMessage msg) {
+        try {
+            String name = msg.getString("name").trim();
+            float value = msg.getFloat("value");
+            synchronized (this) {
+                switch (name) {
+                    case "npu_ms":
+                        currentState.npuMs = value;
+                        currentState.hasNpu = true;
+                        break;
+                    case "npu_fps":
+                        currentState.npuFps = value;
+                        currentState.hasNpu = true;
+                        break;
+                    case "npu_avg":
+                        currentState.npuAvg = value;
+                        currentState.hasNpu = true;
+                        break;
+                }
+            }
+        } catch (Exception e) {
+            // Ignore parse errors
+        }
+    }
+
+    private void handleSystemTime(MAVLinkMessage msg) {
+        synchronized (this) {
+            currentState.bootTimeMs = msg.getLong("time_boot_ms");
         }
     }
 

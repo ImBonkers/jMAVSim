@@ -14,6 +14,7 @@ public class CommandSender extends MAVLinkSystem {
     private static final int MAV_CMD_NAV_LAND = 21;
     private static final int MAV_CMD_DO_SET_MODE = 176;
     private static final int MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN = 246;
+    private static final int MAV_CMD_SET_MESSAGE_INTERVAL = 511;
 
     // SET_POSITION_TARGET_LOCAL_NED type mask bits
     private static final int POSITION_TARGET_TYPEMASK_X_IGNORE = 1;
@@ -33,13 +34,42 @@ public class CommandSender extends MAVLinkSystem {
     private int targetCompId;
     private int commandSequence;
 
+    // Last COMMAND_ACK received
+    private volatile int lastAckCommand;
+    private volatile int lastAckResult;
+
     public CommandSender(MAVLinkSchema schema, int sysId, int componentId) {
         super(schema, sysId, componentId);
         this.targetSysId = 1;  // Default autopilot system ID
         this.targetCompId = 1; // Default autopilot component ID
         this.commandSequence = 0;
+        this.lastAckCommand = -1;
+        this.lastAckResult = -1;
         // Disable heartbeat from command sender
         setHeartbeatInterval(0);
+    }
+
+    /**
+     * Check if a COMMAND_ACK was received for the given command ID with MAV_RESULT_ACCEPTED.
+     * Clears the stored ACK after reading (consume-once).
+     */
+    public boolean consumeAck(int commandId) {
+        if (lastAckCommand == commandId && lastAckResult == 0) {
+            lastAckCommand = -1;
+            lastAckResult = -1;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Request a specific MAVLink message at a given interval.
+     * @param msgId MAVLink message ID
+     * @param intervalUs Interval in microseconds (-1 to disable, 0 for default)
+     */
+    public void requestMessageInterval(int msgId, long intervalUs) {
+        sendCommandLong(MAV_CMD_SET_MESSAGE_INTERVAL,
+                (float) msgId, (float) intervalUs, 0, 0, 0, 0, 0);
     }
 
     /**
@@ -233,7 +263,48 @@ public class CommandSender extends MAVLinkSystem {
         msg.set("yaw_rate", 0.0f);
 
         sendMessage(msg);
-        System.out.println(String.format("CommandSender: Sending GOTO position (%.2f, %.2f, %.2f)", x, y, z));
+    }
+
+    /**
+     * Send velocity setpoint in local NED frame while holding XY position.
+     * Used for controlled descent — stays in OFFBOARD mode.
+     * @param holdX North position to hold (meters)
+     * @param holdY East position to hold (meters)
+     * @param vz Down velocity (positive = descending) in m/s
+     */
+    public void descendAtPosition(double holdX, double holdY, double vz) {
+        MAVLinkMessage msg = new MAVLinkMessage(schema, "SET_POSITION_TARGET_LOCAL_NED",
+                sysId, componentId, protocolVersion);
+
+        msg.set("time_boot_ms", 0);
+        msg.set("target_system", targetSysId);
+        msg.set("target_component", targetCompId);
+        msg.set("coordinate_frame", 1);  // MAV_FRAME_LOCAL_NED
+
+        // Use XY position + Z velocity: ignore Z position, VX, VY, all accel, yaw
+        int typeMask = POSITION_TARGET_TYPEMASK_Z_IGNORE |
+                       POSITION_TARGET_TYPEMASK_VX_IGNORE |
+                       POSITION_TARGET_TYPEMASK_VY_IGNORE |
+                       POSITION_TARGET_TYPEMASK_AX_IGNORE |
+                       POSITION_TARGET_TYPEMASK_AY_IGNORE |
+                       POSITION_TARGET_TYPEMASK_AZ_IGNORE |
+                       POSITION_TARGET_TYPEMASK_YAW_IGNORE |
+                       POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE;
+
+        msg.set("type_mask", typeMask);
+        msg.set("x", (float) holdX);
+        msg.set("y", (float) holdY);
+        msg.set("z", 0.0f);       // ignored
+        msg.set("vx", 0.0f);      // ignored
+        msg.set("vy", 0.0f);      // ignored
+        msg.set("vz", (float) vz); // descent rate
+        msg.set("afx", 0.0f);
+        msg.set("afy", 0.0f);
+        msg.set("afz", 0.0f);
+        msg.set("yaw", 0.0f);
+        msg.set("yaw_rate", 0.0f);
+
+        sendMessage(msg);
     }
 
     /**
@@ -263,13 +334,13 @@ public class CommandSender extends MAVLinkSystem {
     public void handleMessage(MAVLinkMessage msg) {
         super.handleMessage(msg);
 
-        // Handle command acknowledgments if needed
+        // Handle command acknowledgments
         if ("COMMAND_ACK".equals(msg.getMsgName())) {
             int command = msg.getInt("command");
             int result = msg.getInt("result");
-            if (result == 0) {
-                // MAV_RESULT_ACCEPTED
-            } else {
+            lastAckCommand = command;
+            lastAckResult = result;
+            if (result != 0) {
                 System.err.println("CommandSender: Command " + command + " rejected with result " + result);
             }
         }

@@ -118,6 +118,11 @@ public class ScenarioLoader {
                 double x = toDouble(stepMap.getOrDefault("x", 0.0));
                 double y = toDouble(stepMap.getOrDefault("y", 0.0));
                 double z = toDouble(stepMap.getOrDefault("z", 0.0));
+                if (stepMap.containsKey("minStrength") && stepMap.containsKey("maxStrength")) {
+                    double min = toDouble(stepMap.get("minStrength"));
+                    double max = toDouble(stepMap.get("maxStrength"));
+                    return new SetWindStep(x, y, z, min, max);
+                }
                 return new SetWindStep(x, y, z);
             }
 

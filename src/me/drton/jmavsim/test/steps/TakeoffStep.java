@@ -132,6 +132,15 @@ public class TakeoffStep extends TestStep {
     }
 
     @Override
+    public String getProgressString(VehicleState state) {
+        if (!state.hasPosition) return null;
+        double alt = state.getAltitude();
+        double err = Math.abs(alt - targetAltitude);
+        return String.format("[takeoff] alt=%.1fm target=%.1fm err=%.1fm phase=%s",
+                alt, targetAltitude, err, phase);
+    }
+
+    @Override
     public String getDisplayName() {
         return String.format("[takeoff %.1fm]", targetAltitude);
     }

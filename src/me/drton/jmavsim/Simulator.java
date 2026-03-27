@@ -387,9 +387,12 @@ public class Simulator implements Runnable {
                 connHIL.addNode(stateMonitor);
                 connHIL.addNode(commandSender);
 
+                // Default output directory to logs/ if not specified
+                String outputDir = testOutputDir != null ? testOutputDir : "logs";
+
                 // Create test runner
                 testRunner = new TestScenarioRunner(world, scenario, stateMonitor,
-                                                     commandSender, testOutputDir);
+                                                     commandSender, outputDir);
                 world.addObject(testRunner);
 
                 // Set up completion callback

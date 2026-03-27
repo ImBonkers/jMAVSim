@@ -118,6 +118,15 @@ public class GotoStep extends TestStep {
     }
 
     @Override
+    public String getProgressString(VehicleState state) {
+        if (!state.hasPosition) return null;
+        double dist = state.distanceTo(targetX, targetY, targetZ);
+        double spd = state.getSpeed();
+        return String.format("[goto] dist=%.1fm spd=%.1fm/s phase=%s",
+                dist, spd, phase);
+    }
+
+    @Override
     public String getDisplayName() {
         return String.format("[goto %.0f,%.0f,%.0f]", targetX, targetY, targetZ);
     }

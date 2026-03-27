@@ -104,6 +104,19 @@ public class HoverStep extends TestStep {
     }
 
     @Override
+    public String getProgressString(VehicleState state) {
+        if (!state.hasPosition || !refSet) return null;
+        double dx = state.x - refX;
+        double dy = state.y - refY;
+        double dz = state.z - refZ;
+        double drift = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        double held = hoverStartTime > 0 ?
+                (System.currentTimeMillis() - hoverStartTime) / 1000.0 : 0;
+        return String.format("[hover] drift=%.2fm max=%.2fm held=%.1f/%.1fs",
+                drift, maxDriftObserved, held, durationSeconds);
+    }
+
+    @Override
     public String getDisplayName() {
         return String.format("[hover %.1fs]", durationSeconds);
     }

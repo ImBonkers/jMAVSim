@@ -1,7 +1,7 @@
 {
   "name": "wind_disturbance_test",
-  "description": "Validate flight stability under various wind conditions",
-  "globalTimeoutSeconds": 240,
+  "description": "Validate flight stability under various wind conditions including fluctuating gusts",
+  "globalTimeoutSeconds": 300,
   "steps": [
     { "type": "arm", "timeoutSeconds": 15 },
     { "type": "takeoff", "altitude": 8.0, "tolerance": 0.5, "settleSeconds": 2.0, "timeoutSeconds": 30 },
@@ -16,9 +16,13 @@
     { "type": "wait", "durationSeconds": 2 },
     { "type": "hover", "durationSeconds": 5, "maxDrift": 0.8, "timeoutSeconds": 15, "critical": false },
 
-    { "type": "setWind", "x": 3, "y": 3, "z": 0 },
+    { "type": "setWind", "x": 1, "y": 0, "z": 0, "minStrength": 2, "maxStrength": 7 },
     { "type": "wait", "durationSeconds": 2 },
-    { "type": "hover", "durationSeconds": 5, "maxDrift": 1.0, "timeoutSeconds": 15, "critical": false },
+    { "type": "hover", "durationSeconds": 8, "maxDrift": 1.2, "timeoutSeconds": 20, "critical": false },
+
+    { "type": "setWind", "x": 1, "y": 1, "z": 0, "minStrength": 3, "maxStrength": 10 },
+    { "type": "wait", "durationSeconds": 2 },
+    { "type": "hover", "durationSeconds": 8, "maxDrift": 1.5, "timeoutSeconds": 20, "critical": false },
 
     { "type": "setWind", "x": 0, "y": 0, "z": 0 },
     { "type": "wait", "durationSeconds": 2 },

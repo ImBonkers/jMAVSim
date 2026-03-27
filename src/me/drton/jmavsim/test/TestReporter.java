@@ -69,27 +69,31 @@ public class TestReporter {
     }
 
     /**
+     * Print progress string with telemetry (replaces dot)
+     */
+    public void printProgressString(String progress) {
+        System.out.print("\r  " + progress);
+        // Don't increment progressDots — these overwrite in place
+    }
+
+    /**
      * Print step result
      */
     public void printStepResult(TestStep step, int stepIndex) {
-        // Pad to align results
-        int dots = MAX_PROGRESS_DOTS - progressDots;
-        for (int i = 0; i < dots; i++) {
-            System.out.print(".");
-        }
-        System.out.print(" ");
+        // Clear any carriage-return progress line, then print result on new line
+        System.out.print("\r                                                                      \r");
 
+        String name = step.getDisplayName();
         double elapsed = step.getElapsedSeconds();
 
         if (step.isFailed()) {
-            System.out.print("FAIL");
+            System.out.printf("%s FAIL", name);
             if (step.getFailureReason() != null) {
                 System.out.print(" (" + step.getFailureReason() + ")");
             }
             System.out.printf(" (%.1fs)%n", elapsed);
         } else {
-            System.out.print("PASS");
-            System.out.printf(" (%.1fs", elapsed);
+            System.out.printf("%s PASS (%.1fs", name, elapsed);
             if (step.getResultDetails() != null) {
                 System.out.print(", " + step.getResultDetails());
             }

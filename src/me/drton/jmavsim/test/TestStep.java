@@ -158,6 +158,16 @@ public abstract class TestStep {
         return "[" + type + "]";
     }
 
+    /**
+     * Get a short progress string showing distance/state for periodic logging.
+     * Override in subclasses to provide step-specific telemetry.
+     * @param state Current vehicle state
+     * @return progress string, or null for default dot behavior
+     */
+    public String getProgressString(VehicleState state) {
+        return null;
+    }
+
     @Override
     public String toString() {
         return type + "(timeout=" + timeoutSeconds + "s)";
