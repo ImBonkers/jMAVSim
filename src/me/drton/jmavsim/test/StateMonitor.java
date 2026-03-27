@@ -187,19 +187,21 @@ public class StateMonitor extends MAVLinkNode {
     }
 
     private void handleAttitudeTarget(MAVLinkMessage msg) {
-        synchronized (this) {
-            // quaternion [w, x, y, z]
-            float[] q = new float[4];
-            q[0] = msg.getFloat("q[0]");  // w
-            q[1] = msg.getFloat("q[1]");  // x
-            q[2] = msg.getFloat("q[2]");  // y
-            q[3] = msg.getFloat("q[3]");  // z
-            // Convert quaternion to euler
-            currentState.rollSetpoint = Math.atan2(2.0 * (q[0]*q[1] + q[2]*q[3]), 1.0 - 2.0 * (q[1]*q[1] + q[2]*q[2]));
-            currentState.pitchSetpoint = Math.asin(Math.max(-1, Math.min(1, 2.0 * (q[0]*q[2] - q[3]*q[1]))));
-            currentState.yawSetpoint = Math.atan2(2.0 * (q[0]*q[3] + q[1]*q[2]), 1.0 - 2.0 * (q[2]*q[2] + q[3]*q[3]));
-            currentState.thrustSetpoint = msg.getFloat("thrust");
-            currentState.hasAttitudeTarget = true;
+        try {
+            synchronized (this) {
+                Object[] qArr = (Object[]) msg.get("q");
+                double w = ((Number) qArr[0]).doubleValue();
+                double x = ((Number) qArr[1]).doubleValue();
+                double y = ((Number) qArr[2]).doubleValue();
+                double z = ((Number) qArr[3]).doubleValue();
+                currentState.rollSetpoint = Math.atan2(2.0 * (w*x + y*z), 1.0 - 2.0 * (x*x + y*y));
+                currentState.pitchSetpoint = Math.asin(Math.max(-1, Math.min(1, 2.0 * (w*y - z*x))));
+                currentState.yawSetpoint = Math.atan2(2.0 * (w*z + x*y), 1.0 - 2.0 * (y*y + z*z));
+                currentState.thrustSetpoint = msg.getFloat("thrust");
+                currentState.hasAttitudeTarget = true;
+            }
+        } catch (Exception e) {
+            // Array field parse error — skip
         }
     }
 
