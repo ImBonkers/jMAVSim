@@ -35,7 +35,7 @@ public class TestScenarioRunner extends WorldObject {
     private int exitCode;
 
     private static final long PROGRESS_INTERVAL_MS = 500;
-    private static final long LOG_INTERVAL_MS = 50;  // 20 Hz telemetry logging
+    private static final long LOG_INTERVAL_MS = 4;  // 250 Hz telemetry logging
     private static final long STREAM_REQUEST_INTERVAL_MS = 1000;  // Re-request missing streams every 1s
     private static final long CONNECTION_TIMEOUT_MS = 30000;
 
