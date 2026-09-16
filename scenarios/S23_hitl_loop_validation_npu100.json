@@ -1,0 +1,78 @@
+{
+  "name": "S23_hitl_loop_validation_npu100",
+  "description": "Full HITL loop: jMAVSim <-> PX4. NPU pinned at 100% duty throughout the flight (demo variant).",
+  "globalTimeoutSeconds": 240,
+  "steps": [
+    {
+      "type": "reboot",
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 100,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 10.0,
+      "tolerance": 0.5,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "goto",
+      "x": 20,
+      "y": 0,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "goto",
+      "x": 20,
+      "y": 20,
+      "z": -15,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "goto",
+      "x": 0,
+      "y": 0,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "verifyTelemetry",
+      "durationSeconds": 10,
+      "expectedMessages": [
+        "HEARTBEAT",
+        "ATTITUDE",
+        "LOCAL_POSITION_NED",
+        "SYS_STATUS"
+      ],
+      "timeoutSeconds": 20
+    },
+    {
+      "type": "land",
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10
+    }
+  ]
+}

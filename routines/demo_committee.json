@@ -1,0 +1,23 @@
+{
+  "board": "demo",
+  "description": "Committee demo — short campaign showing reboot-per-run, NPU load injection, and NPU telemetry verification in flight",
+  "connection": {
+    "type": "serial",
+    "port": "/dev/ttyACM1",
+    "baudRate": 921600
+  },
+  "pauseBetweenRunsSeconds": 3,
+  "variables": {
+    "NPU_LOAD": 100
+  },
+  "scenarios": [
+    {
+      "file": "scenarios/S09_takeoff_land_single.json",
+      "repetitions": 2
+    },
+    {
+      "file": "scenarios/S24_npu_data_exchange.json",
+      "repetitions": 1
+    }
+  ]
+}
