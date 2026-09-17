@@ -1,6 +1,6 @@
 {
   "board": "demo",
-  "description": "Demo showcase — two different flight profiles with the NPU at full load",
+  "description": "Demo showcase \u2014 three flight profiles with the NPU at full load, including in-flight NPU telemetry verification",
   "connection": {
     "type": "serial",
     "port": "/dev/ttyACM1",
@@ -11,7 +11,17 @@
     "NPU_LOAD": 100
   },
   "scenarios": [
-    { "file": "scenarios/S09_takeoff_land_single.json", "repetitions": 1 },
-    { "file": "scenarios/S23_hitl_loop_validation.json", "repetitions": 1 }
+    {
+      "file": "scenarios/S09_takeoff_land_single.json",
+      "repetitions": 1
+    },
+    {
+      "file": "scenarios/S23_hitl_loop_validation.json",
+      "repetitions": 1
+    },
+    {
+      "file": "scenarios/S24_npu_data_exchange.json",
+      "repetitions": 1
+    }
   ]
 }

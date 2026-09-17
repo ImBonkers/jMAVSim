@@ -186,6 +186,10 @@ public class TestScenarioRunner extends WorldObject {
         // Update step (allows resending commands, etc.)
         currentStep.update(commandSender, vehicleState, currentTime);
 
+        // Keep OFFBOARD alive.  Steps that only observe telemetry command
+        // nothing, and PX4 failsafes to RTL if setpoints stop for ~1s.
+        commandSender.keepSetpointAlive();
+
         // Check completion
         if (currentStep.checkComplete(vehicleState)) {
             // Verify the step properly marked itself as completed or failed

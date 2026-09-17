@@ -23,6 +23,16 @@ public class CommandSender extends MAVLinkSystem {
     private static final int PX4_MAIN_MODE_POSITION = 3;
     private static final int PX4_MAIN_MODE_AUTO = 4;
     private static final int PX4_MAIN_MODE_OFFBOARD = 6;
+
+    /* Offboard keep-alive: PX4 needs setpoints faster than ~1 Hz */
+    private static final long SETPOINT_INTERVAL_MS = 200;
+
+    private double lastSpX;
+    private double lastSpY;
+    private double lastSpZ;
+    private float lastSpYaw;
+    private boolean hasLastSetpoint;
+    private long lastSetpointSent;
     private static final int PX4_SUB_MODE_AUTO_READY = 1;
     private static final int PX4_SUB_MODE_AUTO_TAKEOFF = 2;
     private static final int PX4_SUB_MODE_AUTO_LOITER = 3;
@@ -232,6 +242,14 @@ public class CommandSender extends MAVLinkSystem {
      */
     public void setMode(String modeName) {
         int customMode;
+        /* Any mode other than OFFBOARD owns the vehicle itself; re-sending
+         * offboard setpoints would fight it (a LAND fought this way never
+         * touches down).
+         */
+        if (!"OFFBOARD".equalsIgnoreCase(modeName)) {
+            hasLastSetpoint = false;
+        }
+
         switch (modeName.toUpperCase()) {
             case "MANUAL":
                 customMode = PX4_MAIN_MODE_MANUAL << 16;
@@ -334,6 +352,32 @@ public class CommandSender extends MAVLinkSystem {
     }
 
     /**
+     * Re-send the last position setpoint if none has gone out recently.
+     *
+     * PX4 leaves OFFBOARD and runs its failsafe (RTL) if setpoints stop
+     * arriving for about a second.  Passive steps such as verifyTelemetry
+     * and verifyNpuStream only observe telemetry and command nothing, so
+     * without this the vehicle silently flies an RTL while the scenario
+     * still reports PASS.
+     */
+    public void keepSetpointAlive() {
+        if (!hasLastSetpoint) {
+            return;
+        }
+
+        if (System.currentTimeMillis() - lastSetpointSent < SETPOINT_INTERVAL_MS) {
+            return;
+        }
+
+        gotoPosition(lastSpX, lastSpY, lastSpZ, lastSpYaw);
+    }
+
+    /** Stop re-sending (e.g. once the vehicle is landing/disarmed). */
+    public void clearSetpointKeepAlive() {
+        hasLastSetpoint = false;
+    }
+
+    /**
      * Send position setpoint in local NED frame
      * @param x North position in meters
      * @param y East position in meters
@@ -351,6 +395,13 @@ public class CommandSender extends MAVLinkSystem {
      * @param yaw Yaw angle in radians (NaN to ignore)
      */
     public void gotoPosition(double x, double y, double z, float yaw) {
+        lastSpX = x;
+        lastSpY = y;
+        lastSpZ = z;
+        lastSpYaw = yaw;
+        hasLastSetpoint = true;
+        lastSetpointSent = System.currentTimeMillis();
+
         MAVLinkMessage msg = new MAVLinkMessage(schema, "SET_POSITION_TARGET_LOCAL_NED",
                 sysId, componentId, protocolVersion);
 
@@ -413,6 +464,12 @@ public class CommandSender extends MAVLinkSystem {
      * @param vz Down velocity (positive = descending) in m/s
      */
     public void descendAtPosition(double holdX, double holdY, double vz) {
+        /* This streams its own descent setpoints; the keep-alive would
+         * otherwise keep re-sending the previous altitude and hold the
+         * vehicle up.
+         */
+        hasLastSetpoint = false;
+
         MAVLinkMessage msg = new MAVLinkMessage(schema, "SET_POSITION_TARGET_LOCAL_NED",
                 sysId, componentId, protocolVersion);
 
