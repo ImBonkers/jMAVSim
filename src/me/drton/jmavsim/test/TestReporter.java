@@ -20,6 +20,26 @@ public class TestReporter {
     private int progressDots;
     private static final int MAX_PROGRESS_DOTS = 20;
 
+    // Live tree rendering
+    private static final String C_RESET = "\u001b[0m";
+    private static final String C_GREEN = "\u001b[32m";
+    private static final String C_RED = "\u001b[31m";
+    private static final String C_DIM = "\u001b[2m";
+    private static final String C_CYAN = "\u001b[36m";
+
+    private static final int PENDING = 0;
+    private static final int ACTIVE = 1;
+    private static final int PASSED = 2;
+    private static final int FAILED = 3;
+
+    private String[] treeNames;
+    private int[] treeState;
+    private String[] treeDetail;
+    private boolean treeActive;
+    private boolean treeDrawn;
+    private boolean inRedraw;
+    private PrintStream realOut;
+
     public TestReporter(TestScenario scenario, String outputDir) {
         this.scenario = scenario;
         this.outputDir = outputDir;
@@ -31,6 +51,113 @@ public class TestReporter {
 
     public void setBoardInfo(String info) {
         this.boardInfo = info;
+    }
+
+    /**
+     * Render the step tree.  Called once, then redrawn in place as steps
+     * change state, so the whole scenario shape is visible from the start.
+     */
+    private void drawTree() {
+        inRedraw = true;
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < treeNames.length; i++) {
+            boolean last = (i == treeNames.length - 1);
+            String branch = last ? "\u2514\u2500 " : "\u251c\u2500 ";
+            String mark;
+            String colour;
+
+            switch (treeState[i]) {
+            case PASSED:
+                mark = "\u2714";
+                colour = C_GREEN;
+                break;
+            case FAILED:
+                mark = "\u2718";
+                colour = C_RED;
+                break;
+            case ACTIVE:
+                mark = "\u25b6";
+                colour = C_CYAN;
+                break;
+            default:
+                mark = " ";
+                colour = C_DIM;
+                break;
+            }
+
+            sb.append(colour).append(branch).append(mark).append(' ')
+              .append(treeNames[i]);
+
+            if (treeDetail[i] != null) {
+                sb.append("  ").append(treeDetail[i]);
+            }
+
+            sb.append(C_RESET).append("\u001b[K").append(System.lineSeparator());
+        }
+
+        realOut.print(sb);
+        realOut.flush();
+        treeDrawn = true;
+        inRedraw = false;
+    }
+
+    /** Move the cursor back over the tree so the next draw overwrites it. */
+    private void redrawTree() {
+        if (!treeActive || !treeDrawn) {
+            return;
+        }
+
+        realOut.print("\u001b[" + treeNames.length + "A");
+        drawTree();
+    }
+
+    /**
+     * Wrap stdout so output from other components (command sender, serial
+     * port, ...) appears above the tree instead of corrupting it.
+     */
+    private void interceptStdout() {
+        realOut = System.out;
+
+        OutputStream sink = new OutputStream() {
+            private StringBuilder line = new StringBuilder();
+
+            @Override
+            public void write(int b) {
+                if (inRedraw) {
+                    realOut.write(b);
+                    return;
+                }
+
+                if (b == '\n') {
+                    String msg = line.toString();
+                    line.setLength(0);
+
+                    if (msg.trim().isEmpty()) {
+                        return;
+                    }
+
+                    if (treeDrawn) {
+                        realOut.print("\u001b[" + treeNames.length + "A");
+                    }
+
+                    realOut.print(msg + "\u001b[K" + System.lineSeparator());
+                    drawTree();
+                } else if (b != '\r') {
+                    line.append((char) b);
+                }
+            }
+        };
+
+        System.setOut(new PrintStream(sink, true));
+    }
+
+    /** Restore the original stdout. */
+    private void releaseStdout() {
+        if (realOut != null) {
+            System.setOut(realOut);
+            treeActive = false;
+        }
     }
 
     /**
@@ -46,22 +173,64 @@ public class TestReporter {
         System.out.println("Board: " + boardInfo);
         System.out.println("Date: " + timestamp);
         System.out.println();
+
+        List<TestStep> steps = scenario.getSteps();
+        treeNames = new String[steps.size()];
+        treeState = new int[steps.size()];
+        treeDetail = new String[steps.size()];
+
+        for (int i = 0; i < steps.size(); i++) {
+            treeNames[i] = steps.get(i).getDisplayName();
+            treeState[i] = PENDING;
+        }
+
+        // Only render the live tree on an interactive terminal.  When output
+        // is redirected (batch runs, the campaign runner) the cursor-up
+        // redraws would pile up in the log file, so fall back to plain
+        // line-by-line output instead.
+        treeActive = (System.console() != null);
+
+        if (treeActive) {
+            interceptStdout();
+            drawTree();
+        }
     }
 
     /**
      * Print step start
      */
     public void printStepStart(TestStep step, int stepIndex) {
-        // Format: [stepType] ...
-        String name = step.getDisplayName();
-        System.out.print(name + " ");
         progressDots = 0;
+
+        if (treeActive && stepIndex < treeState.length) {
+            treeState[stepIndex] = ACTIVE;
+            treeNames[stepIndex] = step.getDisplayName();
+            redrawTree();
+            return;
+        }
+
+        System.out.print(step.getDisplayName() + " ");
+    }
+
+    /** Index of the step currently marked active, or -1. */
+    private int activeIndex() {
+        for (int i = 0; i < treeState.length; i++) {
+            if (treeState[i] == ACTIVE) {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     /**
      * Print progress dot (called periodically during step)
      */
     public void printProgress() {
+        if (treeActive) {
+            return;
+        }
+
         if (progressDots < MAX_PROGRESS_DOTS) {
             System.out.print(".");
             progressDots++;
@@ -72,6 +241,17 @@ public class TestReporter {
      * Print progress string with telemetry (replaces dot)
      */
     public void printProgressString(String progress) {
+        if (treeActive) {
+            int idx = activeIndex();
+
+            if (idx >= 0) {
+                treeDetail[idx] = C_DIM + progress + C_RESET;
+                redrawTree();
+            }
+
+            return;
+        }
+
         System.out.print("\r  " + progress);
         // Don't increment progressDots — these overwrite in place
     }
@@ -80,11 +260,40 @@ public class TestReporter {
      * Print step result
      */
     public void printStepResult(TestStep step, int stepIndex) {
-        // Clear any carriage-return progress line, then print result on new line
-        System.out.print("\r                                                                      \r");
-
         String name = step.getDisplayName();
         double elapsed = step.getElapsedSeconds();
+
+        if (treeActive && stepIndex < treeState.length) {
+            treeState[stepIndex] = step.isFailed() ? FAILED : PASSED;
+            treeNames[stepIndex] = name;
+
+            StringBuilder d = new StringBuilder();
+            d.append(String.format("%.1fs", elapsed));
+
+            String extra = step.isFailed() ? step.getFailureReason()
+                                           : step.getResultDetails();
+
+            if (extra != null) {
+                d.append(", ").append(extra);
+            }
+
+            treeDetail[stepIndex] = C_DIM + d + C_RESET;
+            redrawTree();
+
+            StepResult tr = new StepResult();
+            tr.stepIndex = stepIndex;
+            tr.stepType = step.getType();
+            tr.displayName = name;
+            tr.passed = !step.isFailed();
+            tr.elapsedSeconds = elapsed;
+            tr.details = step.isFailed() ? step.getFailureReason()
+                                         : step.getResultDetails();
+            results.add(tr);
+            return;
+        }
+
+        // Clear any carriage-return progress line, then print result on new line
+        System.out.print("\r                                                                      \r");
 
         if (step.isFailed()) {
             System.out.printf("%s FAIL", name);
@@ -132,6 +341,8 @@ public class TestReporter {
      * Print summary and write JSON report
      */
     public void printSummary() {
+        releaseStdout();
+
         long endTime = System.currentTimeMillis();
         double totalTime = (endTime - scenarioStartTime) / 1000.0;
 

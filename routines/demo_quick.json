@@ -1,6 +1,6 @@
 {
   "board": "demo",
-  "description": "Short demo — one run covering reboot, NPU load, flight and in-flight NPU stream verification",
+  "description": "Short demo — one takeoff/hover/land flight with the NPU loaded",
   "connection": {
     "type": "serial",
     "port": "/dev/ttyACM1",
@@ -11,9 +11,6 @@
     "NPU_LOAD": 100
   },
   "scenarios": [
-    {
-      "file": "scenarios/S24_npu_data_exchange.json",
-      "repetitions": 1
-    }
+    { "file": "scenarios/S09_takeoff_land_single.json", "repetitions": 1 }
   ]
 }

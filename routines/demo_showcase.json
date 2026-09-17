@@ -1,0 +1,17 @@
+{
+  "board": "demo",
+  "description": "Demo showcase — two different flight profiles with the NPU at full load",
+  "connection": {
+    "type": "serial",
+    "port": "/dev/ttyACM1",
+    "baudRate": 921600
+  },
+  "pauseBetweenRunsSeconds": 2,
+  "variables": {
+    "NPU_LOAD": 100
+  },
+  "scenarios": [
+    { "file": "scenarios/S09_takeoff_land_single.json", "repetitions": 1 },
+    { "file": "scenarios/S23_hitl_loop_validation.json", "repetitions": 1 }
+  ]
+}
