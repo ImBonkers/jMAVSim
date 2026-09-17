@@ -1,0 +1,19 @@
+{
+  "board": "demo",
+  "description": "Short demo — one run covering reboot, NPU load, flight and in-flight NPU stream verification",
+  "connection": {
+    "type": "serial",
+    "port": "/dev/ttyACM1",
+    "baudRate": 921600
+  },
+  "pauseBetweenRunsSeconds": 0,
+  "variables": {
+    "NPU_LOAD": 100
+  },
+  "scenarios": [
+    {
+      "file": "scenarios/S24_npu_data_exchange.json",
+      "repetitions": 1
+    }
+  ]
+}
