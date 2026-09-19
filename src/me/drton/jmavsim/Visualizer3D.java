@@ -91,6 +91,7 @@ public class Visualizer3D extends JFrame {
     private KinematicObject gimbalViewObject;
     private MAVLinkHILSystem hilSystem;
     private Simulator simulator;
+    private CsvFlightReplay csvReplay;
     private JSplitPane splitPane;
     private ReportPanel reportPanel;
     private JSplitPane propertySplitPane;
@@ -507,6 +508,13 @@ public class Visualizer3D extends JFrame {
      */
     public void setSimulator(Simulator simulator) {
         this.simulator = simulator;
+    }
+
+    /**
+     * Set the CSV replay object for replay mode keyboard controls.
+     */
+    public void setCsvReplay(CsvFlightReplay replay) {
+        this.csvReplay = replay;
     }
 
     /**
@@ -1011,7 +1019,24 @@ public class Visualizer3D extends JFrame {
 
         // we draw the HUD/overlay here
         public void postRender() {
+            // Replay status bar at top of screen (always shown in replay mode)
+            if (csvReplay != null) {
+                g2d.setFont(font);
+                int rx = 10;
+                int ry = 25;
+
+                // Background bar
+                g2d.setColor(new Color(0, 0, 0, 160));
+                g2d.fillRoundRect(rx - 5, ry - 18, this.getWidth() - 10, 26, 8, 8);
+
+                // Status text
+                String status = csvReplay.getStatusString();
+                g2d.setColor(csvReplay.isPaused() ? Color.YELLOW : Color.GREEN);
+                g2d.drawString(status, rx, ry);
+            }
+
             if (!showOverlay) {
+                if (csvReplay != null) g2d.flush(false);
                 return;
             }
 
@@ -1243,11 +1268,23 @@ public class Visualizer3D extends JFrame {
                     dispatchEvent(new WindowEvent(getWindows()[0], WindowEvent.WINDOW_CLOSING));
                     break;
 
-                // full view and object reset
+                // full view and object reset (or play/pause in replay mode)
                 case KeyEvent.VK_SPACE :
-                    resetObjectRAV(vehicleViewObject, true);
+                    if (csvReplay != null) {
+                        csvReplay.togglePause();
+                        // status shown in HUD
+                    } else {
+                        resetObjectRAV(vehicleViewObject, true);
+                        resetView();
+                    }
+                    break;
 
-                    resetView();
+                // Replay: restart from beginning
+                case KeyEvent.VK_HOME :
+                    if (csvReplay != null) {
+                        csvReplay.seekToStart();
+                        // status shown in HUD
+                    }
                     break;
 
                 // vehicle object resets
@@ -1275,6 +1312,33 @@ public class Visualizer3D extends JFrame {
             keyBits.set(e.getKeyCode());
 
             checkCumulativeKeys();
+
+            // Replay mode: speed controls override zoom
+            if (csvReplay != null) {
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_PLUS :
+                    case KeyEvent.VK_ADD :
+                    case KeyEvent.VK_EQUALS :
+                        csvReplay.changeSpeed(2.0);
+                        // status shown in HUD
+                        return;
+                    case KeyEvent.VK_MINUS :
+                    case KeyEvent.VK_SUBTRACT :
+                        csvReplay.changeSpeed(0.5);
+                        // status shown in HUD
+                        return;
+                    case KeyEvent.VK_RIGHT :
+                    case KeyEvent.VK_KP_RIGHT :
+                        csvReplay.stepForward(keyBits.get(KeyEvent.VK_SHIFT) ? 50 : 1);
+                        // status shown in HUD
+                        return;
+                    case KeyEvent.VK_LEFT :
+                    case KeyEvent.VK_KP_LEFT :
+                        csvReplay.stepBackward(keyBits.get(KeyEvent.VK_SHIFT) ? 50 : 1);
+                        // status shown in HUD
+                        return;
+                }
+            }
 
             switch (e.getKeyCode()) {
 
@@ -1306,6 +1370,9 @@ public class Visualizer3D extends JFrame {
         }
 
         public void checkCumulativeKeys() {
+            // In replay mode, arrow keys are handled in keyPressed for frame stepping
+            if (csvReplay != null) return;
+
             // how to move
             Vector3f dir = new Vector3f();
             // how much to move

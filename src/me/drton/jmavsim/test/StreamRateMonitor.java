@@ -36,6 +36,7 @@ public class StreamRateMonitor {
     public static final int MSG_HIGHRES_IMU = 105;
     public static final int MSG_VIBRATION = 241;
     public static final int MSG_HIL_ACTUATOR_CONTROLS = 93;
+    public static final int MSG_NAMED_VALUE_FLOAT = 251;
 
     /** Observe-only streams: track rate + jitter but don't request */
     private final Map<Integer, RateTracker> observeOnly = new HashMap<>();
@@ -49,6 +50,8 @@ public class StreamRateMonitor {
         setDesiredRate(MSG_ESTIMATOR_STATUS, 5);
         setDesiredRate(MSG_HIGHRES_IMU, 50);
         setDesiredRate(MSG_VIBRATION, 2);
+
+        setDesiredRate(MSG_NAMED_VALUE_FLOAT, 10);
 
         // Observe control loop rate (driven by FC, not requestable)
         trackOnly(MSG_HIL_ACTUATOR_CONTROLS);
@@ -193,6 +196,7 @@ public class StreamRateMonitor {
             case MSG_HIGHRES_IMU: return "HIGHRES_IMU (105)";
             case MSG_VIBRATION: return "VIBRATION (241)";
             case MSG_HIL_ACTUATOR_CONTROLS: return "HIL_ACTUATOR_CTRL (93)";
+            case MSG_NAMED_VALUE_FLOAT: return "NAMED_VALUE_FLOAT (251)";
             default: return "MSG_" + msgId;
         }
     }

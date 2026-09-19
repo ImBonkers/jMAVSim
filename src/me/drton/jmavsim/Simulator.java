@@ -57,6 +57,7 @@ public class Simulator implements Runnable {
         true;   // send System.out messages to stdout (console) as well as any custom handlers (see SystemOutHandler)
     public static boolean DEBUG_MODE = false;
     public static boolean DISPLAY_ONLY = false; // display HIL_STATE_QUATERNION from the autopilot, simulation engine disabled
+    public static boolean REPLAY_MODE = false;  // replay CSV flight log in 3D viewer
 
     public static final int    DEFAULT_SIM_RATE = 250; // Hz
     public static final double    DEFAULT_SPEED_FACTOR = 1.0;
@@ -133,6 +134,9 @@ public class Simulator implements Runnable {
     private static String testOutputDir = null;
     private static boolean testKeepRunning = false;
 
+    // Replay settings
+    private static String replayCsvPath = null;
+
 
     private Visualizer3D visualizer;
     private AbstractMulticopter vehicle;
@@ -149,6 +153,9 @@ public class Simulator implements Runnable {
     // Test scenario components
     private TestScenarioRunner testRunner;
     private int testExitCode = 0;
+
+    // Replay component
+    private CsvFlightReplay csvReplay;
 //  private int simDelayMax = 500;  // Max delay between simulated and real time to skip samples in simulator, in ms
 
     private long simTimeUs = 0;
@@ -215,224 +222,265 @@ public class Simulator implements Runnable {
             visualizer = null;
         }
 
-        MAVLinkSchema schema = null;
-        try {
-            schema = new MAVLinkSchema("mavlink/message_definitions/common.xml");
-        } catch (ParserConfigurationException | IOException | SAXException e) {
-            System.out.println("ERROR: Could not load Mavlink Schema: " + e.getLocalizedMessage());
-            shutdown = true;
-        }
-
-        // Create MAVLink connections
-        MAVLinkConnection connHIL = new MAVLinkConnection(world);
-        world.addObject(connHIL);
-
-        // Create ports
-        if (PORT == Port.SERIAL) {
-            SerialMAVLinkPort port = new SerialMAVLinkPort(schema);
-            port.setup(serialPath, serialBaudRate, 8, 1, 0);
-            port.setDebug(DEBUG_MODE);
-            autopilotMavLinkPort = port;
-
-        } else if (PORT == Port.TCP) {
-            TCPMavLinkPort port = new TCPMavLinkPort(schema);
-            port.setDebug(DEBUG_MODE);
-            port.setup(autopilotIpAddress, autopilotPort);
-            if (monitorMessage) {
-                port.setMonitorMessageID(monitorMessageIds);
-            }
-            autopilotMavLinkPort = port;
-        } else {
-            UDPMavLinkPort port = new UDPMavLinkPort(schema);
-            port.setDebug(DEBUG_MODE);
-            port.setupHost(autopilotPort);
-            if (monitorMessage) {
-                port.setMonitorMessageID(monitorMessageIds);
-            }
-            autopilotMavLinkPort = port;
-        }
-
-        // allow HIL and GCS to talk to this port
-        connHIL.addNode(autopilotMavLinkPort);
-
-        // We don't want to spam QGC or SDK with HIL messages.
-        String[] skipMessages = {
-            "HIL_CONTROLS",
-            "HIL_ACTUATOR_CONTROLS",
-            "HIL_SENSOR",
-            "HIL_GPS",
-            "HIL_STATE_QUATERNION"
-        };
-
-        if (COMMUNICATE_WITH_QGC) {
-            MAVLinkConnection connQGC = new MAVLinkConnection(world);
-            if (schema != null) {
-                for (String  skipMessage : skipMessages) {
-                    connQGC.addSkipMessage(schema.getMessageDefinition(skipMessage).id);
-                }
-            }
-            world.addObject(connQGC);
-
-            udpGCMavLinkPort = new UDPMavLinkPort(schema);
-            udpGCMavLinkPort.setDebug(DEBUG_MODE);
-            udpGCMavLinkPort.setupClient(qgcIpAddress, qgcPeerPort);
-            if (monitorMessage && PORT == Port.SERIAL) {
-                udpGCMavLinkPort.setMonitorMessageID(monitorMessageIds);
-            }
-            connQGC.addNode(udpGCMavLinkPort);
-            connQGC.addNode(autopilotMavLinkPort);
-        }
-
-        if (COMMUNICATE_WITH_SDK) {
-
-            MAVLinkConnection connSDK = new MAVLinkConnection(world);
-            if (schema != null) {
-                for (String  skipMessage : skipMessages) {
-                    connSDK.addSkipMessage(schema.getMessageDefinition(skipMessage).id);
-                }
-            }
-            world.addObject(connSDK);
-
-            udpSDKMavLinkPort = new UDPMavLinkPort(schema);
-            udpSDKMavLinkPort.setDebug(DEBUG_MODE);
-            udpSDKMavLinkPort.setupClient(sdkIpAddress, sdkPeerPort);
-            if (monitorMessage && PORT == Port.SERIAL) {
-                udpSDKMavLinkPort.setMonitorMessageID(monitorMessageIds);
-            }
-            connSDK.addNode(udpSDKMavLinkPort);
-            connSDK.addNode(autopilotMavLinkPort);
-        }
-
-        // Set up magnetic field deviations
-        // (do this after environment already has a reference point in case we need to look up declination manually)
-        if (DO_MAG_FIELD_LOOKUP) {
-            simpleEnvironment.setMagField(magFieldLookup(referencePos));
-        } else if (DEFAULT_MAG_INCL != 0.0 || DEFAULT_MAG_DECL != 0.0) {
-            simpleEnvironment.setMagFieldByInclDecl(DEFAULT_MAG_INCL, DEFAULT_MAG_DECL);
-        } else if (DEFAULT_MAG_FIELD.y == 0.0 && (DEFAULT_MAG_FIELD.x != 0.0 ||
-                                                   DEFAULT_MAG_FIELD.z != 0.0)) {
-            Vector3d magField = DEFAULT_MAG_FIELD;
-            // Set declination based on the initialization position of the Simulator
-            // getMagDeclination() returns degrees and variable decl is in radians.
-            double decl = Math.toRadians(simpleEnvironment.getMagDeclination(referencePos.lat,
-                                                                             referencePos.lon));
-            //System.out.println("Declination: " + (Math.toDegrees(decl)));
-            Matrix3d magDecl = new Matrix3d();
-            magDecl.rotZ(decl);
-            magDecl.transform(magField);
-            simpleEnvironment.setMagField(magField);
-        } else if (DEFAULT_MAG_FIELD.y != 0.0
-                   && DEFAULT_MAG_FIELD.x != 0.0
-                   && DEFAULT_MAG_FIELD.z != 0.0) {
-
-            simpleEnvironment.setMagField(DEFAULT_MAG_FIELD);
-        }
-
-        // Create vehicle with sensors
+        // Create vehicle with sensors (needed for all modes including replay)
         if (autopilotType == "aq") {
             vehicle = buildAQ_leora();
         } else {
             vehicle = buildMulticopter();
         }
 
-        // Create MAVLink HIL system
-        // SysId should be the same as autopilot, ComponentId should be different!
-        if (DISPLAY_ONLY){
+        MAVLinkSchema schema = null;
+        MAVLinkConnection connHIL = null;
+
+        if (REPLAY_MODE) {
+            // Replay mode: no MAVLink, no ports, no physics
             vehicle.setIgnoreGravity(true);
             vehicle.setIgnoreWind(true);
-            hilSystem = new MAVLinkDisplayOnly(schema, autopilotSysId, 51, vehicle);
-        } else {
-            hilSystem = new MAVLinkHILSystem(schema, autopilotSysId, 51, vehicle);
+            hilSystem = null;
+            world.addObject(vehicle);
+
+            // Set up visualizer
             if (SHOW_GUI) {
-                visualizer.setHilSystem((MAVLinkHILSystem)hilSystem);
-            }
-        }
-        hilSystem.setSimulator(this);
-        //hilSystem.setHeartbeatInterval(0);
-        connHIL.addNode(hilSystem);
-        world.addObject(vehicle);
-
-        if (SHOW_GUI) {
-            // Put camera on vehicle with gimbal
-            if (USE_GIMBAL) {
-                gimbal = buildGimbal();
-                world.addObject(gimbal);
-                visualizer.setGimbalViewObject(gimbal);
+                if (USE_GIMBAL) {
+                    gimbal = buildGimbal();
+                    world.addObject(gimbal);
+                    visualizer.setGimbalViewObject(gimbal);
+                }
+                world.addObject(new ReportUpdater(world, visualizer));
+                visualizer.addWorldModels();
+                visualizer.setVehicleViewObject(vehicle);
+                visualizer.setViewType(GUI_START_VIEW);
+                visualizer.setZoomMode(GUI_START_ZOOM);
+                visualizer.toggleReportPanel(GUI_SHOW_REPORT_PANEL);
             }
 
-            // Create simulation report updater
-            world.addObject(new ReportUpdater(world, visualizer));
-
-            visualizer.addWorldModels();
-            visualizer.setVehicleViewObject(vehicle);
-
-            // set default view and zoom mode
-            visualizer.setViewType(GUI_START_VIEW);
-            visualizer.setZoomMode(GUI_START_ZOOM);
-            visualizer.toggleReportPanel(GUI_SHOW_REPORT_PANEL);
-        }
-
-        // Set up test scenario if specified
-        if (testScenarioPath != null) {
+            // Create replay object
             try {
-                TestScenario scenario = ScenarioLoader.load(testScenarioPath);
-                System.out.println("Loaded test scenario: " + scenario.getName() +
-                                   " (" + scenario.getStepCount() + " steps)");
-
-                // Create state monitor and command sender
-                StateMonitor stateMonitor = new StateMonitor(schema);
-                CommandSender commandSender = new CommandSender(schema, 255, 190);
-
-                // Add to MAVLink connection
-                connHIL.addNode(stateMonitor);
-                connHIL.addNode(commandSender);
-
-                // Default output directory to logs/ if not specified
-                String outputDir = testOutputDir != null ? testOutputDir : "logs";
-
-                // Create test runner
-                testRunner = new TestScenarioRunner(world, scenario, stateMonitor,
-                                                     commandSender, outputDir);
-                world.addObject(testRunner);
-
-                // Set up completion callback
-                final Simulator sim = this;
-                testRunner.setOnComplete(() -> {
-                    testExitCode = testRunner.getExitCode();
-                    if (!testKeepRunning) {
-                        sim.shutdown = true;
-                    } else {
-                        System.out.println("\nTest complete. Simulator still running (use ESC or close window to exit).");
-                    }
-                });
-
+                csvReplay = new CsvFlightReplay(world, vehicle, replayCsvPath);
+                world.addObject(csvReplay);
+                System.out.println("Replay loaded: " + csvReplay.getFrameCount() + " frames, " +
+                                   (csvReplay.getDurationMs() / 1000) + "s");
+                System.out.println("Controls: SPACE=play/pause, LEFT/RIGHT=step, +/-=speed, HOME=restart");
+                if (visualizer != null) {
+                    visualizer.setCsvReplay(csvReplay);
+                }
             } catch (IOException e) {
-                System.err.println("ERROR: Failed to load test scenario: " + e.getMessage());
+                System.err.println("ERROR: Failed to load CSV for replay: " + e.getMessage());
                 shutdown = true;
             }
-        }
 
-        // Open ports
-        try {
-            autopilotMavLinkPort.open();
-        } catch (IOException e) {
-            System.out.println("ERROR: Failed to open MAV port: " + e.getLocalizedMessage());
-            shutdown = true;
-        }
+        } else {
+            // Normal mode: MAVLink, ports, HIL
 
-        if (COMMUNICATE_WITH_QGC) {
             try {
-                udpGCMavLinkPort.open();
-            } catch (IOException e) {
-                System.out.println("ERROR: Failed to open UDP link to QGC: " + e.getLocalizedMessage());
+                schema = new MAVLinkSchema("mavlink/message_definitions/common.xml");
+            } catch (ParserConfigurationException | IOException | SAXException e) {
+                System.out.println("ERROR: Could not load Mavlink Schema: " + e.getLocalizedMessage());
+                shutdown = true;
+            }
+
+            // Create MAVLink connections
+            connHIL = new MAVLinkConnection(world);
+            world.addObject(connHIL);
+
+            // Create ports
+            if (PORT == Port.SERIAL) {
+                SerialMAVLinkPort port = new SerialMAVLinkPort(schema);
+                port.setup(serialPath, serialBaudRate, 8, 1, 0);
+                port.setDebug(DEBUG_MODE);
+                autopilotMavLinkPort = port;
+
+            } else if (PORT == Port.TCP) {
+                TCPMavLinkPort port = new TCPMavLinkPort(schema);
+                port.setDebug(DEBUG_MODE);
+                port.setup(autopilotIpAddress, autopilotPort);
+                if (monitorMessage) {
+                    port.setMonitorMessageID(monitorMessageIds);
+                }
+                autopilotMavLinkPort = port;
+            } else {
+                UDPMavLinkPort port = new UDPMavLinkPort(schema);
+                port.setDebug(DEBUG_MODE);
+                port.setupHost(autopilotPort);
+                if (monitorMessage) {
+                    port.setMonitorMessageID(monitorMessageIds);
+                }
+                autopilotMavLinkPort = port;
+            }
+
+            // allow HIL and GCS to talk to this port
+            connHIL.addNode(autopilotMavLinkPort);
+
+            // We don't want to spam QGC or SDK with HIL messages.
+            String[] skipMessages = {
+                "HIL_CONTROLS",
+                "HIL_ACTUATOR_CONTROLS",
+                "HIL_SENSOR",
+                "HIL_GPS",
+                "HIL_STATE_QUATERNION"
+            };
+
+            if (COMMUNICATE_WITH_QGC) {
+                MAVLinkConnection connQGC = new MAVLinkConnection(world);
+                if (schema != null) {
+                    for (String  skipMessage : skipMessages) {
+                        connQGC.addSkipMessage(schema.getMessageDefinition(skipMessage).id);
+                    }
+                }
+                world.addObject(connQGC);
+
+                udpGCMavLinkPort = new UDPMavLinkPort(schema);
+                udpGCMavLinkPort.setDebug(DEBUG_MODE);
+                udpGCMavLinkPort.setupClient(qgcIpAddress, qgcPeerPort);
+                if (monitorMessage && PORT == Port.SERIAL) {
+                    udpGCMavLinkPort.setMonitorMessageID(monitorMessageIds);
+                }
+                connQGC.addNode(udpGCMavLinkPort);
+                connQGC.addNode(autopilotMavLinkPort);
+            }
+
+            if (COMMUNICATE_WITH_SDK) {
+
+                MAVLinkConnection connSDK = new MAVLinkConnection(world);
+                if (schema != null) {
+                    for (String  skipMessage : skipMessages) {
+                        connSDK.addSkipMessage(schema.getMessageDefinition(skipMessage).id);
+                    }
+                }
+                world.addObject(connSDK);
+
+                udpSDKMavLinkPort = new UDPMavLinkPort(schema);
+                udpSDKMavLinkPort.setDebug(DEBUG_MODE);
+                udpSDKMavLinkPort.setupClient(sdkIpAddress, sdkPeerPort);
+                if (monitorMessage && PORT == Port.SERIAL) {
+                    udpSDKMavLinkPort.setMonitorMessageID(monitorMessageIds);
+                }
+                connSDK.addNode(udpSDKMavLinkPort);
+                connSDK.addNode(autopilotMavLinkPort);
+            }
+
+            // Set up magnetic field deviations
+            if (DO_MAG_FIELD_LOOKUP) {
+                simpleEnvironment.setMagField(magFieldLookup(referencePos));
+            } else if (DEFAULT_MAG_INCL != 0.0 || DEFAULT_MAG_DECL != 0.0) {
+                simpleEnvironment.setMagFieldByInclDecl(DEFAULT_MAG_INCL, DEFAULT_MAG_DECL);
+            } else if (DEFAULT_MAG_FIELD.y == 0.0 && (DEFAULT_MAG_FIELD.x != 0.0 ||
+                                                       DEFAULT_MAG_FIELD.z != 0.0)) {
+                Vector3d magField = DEFAULT_MAG_FIELD;
+                double decl = Math.toRadians(simpleEnvironment.getMagDeclination(referencePos.lat,
+                                                                                 referencePos.lon));
+                Matrix3d magDecl = new Matrix3d();
+                magDecl.rotZ(decl);
+                magDecl.transform(magField);
+                simpleEnvironment.setMagField(magField);
+            } else if (DEFAULT_MAG_FIELD.y != 0.0
+                       && DEFAULT_MAG_FIELD.x != 0.0
+                       && DEFAULT_MAG_FIELD.z != 0.0) {
+
+                simpleEnvironment.setMagField(DEFAULT_MAG_FIELD);
+            }
+
+            // Create MAVLink HIL system
+            // SysId should be the same as autopilot, ComponentId should be different!
+            if (DISPLAY_ONLY){
+                vehicle.setIgnoreGravity(true);
+                vehicle.setIgnoreWind(true);
+                hilSystem = new MAVLinkDisplayOnly(schema, autopilotSysId, 51, vehicle);
+            } else {
+                hilSystem = new MAVLinkHILSystem(schema, autopilotSysId, 51, vehicle);
+                if (SHOW_GUI) {
+                    visualizer.setHilSystem((MAVLinkHILSystem)hilSystem);
+                }
+            }
+            hilSystem.setSimulator(this);
+            //hilSystem.setHeartbeatInterval(0);
+            connHIL.addNode(hilSystem);
+            world.addObject(vehicle);
+
+            if (SHOW_GUI) {
+                // Put camera on vehicle with gimbal
+                if (USE_GIMBAL) {
+                    gimbal = buildGimbal();
+                    world.addObject(gimbal);
+                    visualizer.setGimbalViewObject(gimbal);
+                }
+
+                // Create simulation report updater
+                world.addObject(new ReportUpdater(world, visualizer));
+
+                visualizer.addWorldModels();
+                visualizer.setVehicleViewObject(vehicle);
+
+                // set default view and zoom mode
+                visualizer.setViewType(GUI_START_VIEW);
+                visualizer.setZoomMode(GUI_START_ZOOM);
+                visualizer.toggleReportPanel(GUI_SHOW_REPORT_PANEL);
+            }
+
+            // Set up test scenario if specified
+            if (testScenarioPath != null) {
+                try {
+                    TestScenario scenario = ScenarioLoader.load(testScenarioPath);
+                    System.out.println("Loaded test scenario: " + scenario.getName() +
+                                       " (" + scenario.getStepCount() + " steps)");
+
+                    // Create state monitor and command sender
+                    StateMonitor stateMonitor = new StateMonitor(schema);
+                    CommandSender commandSender = new CommandSender(schema, 255, 190);
+
+                    // Add to MAVLink connection
+                    connHIL.addNode(stateMonitor);
+                    connHIL.addNode(commandSender);
+
+                    // Default output directory to logs/ if not specified
+                    String outputDir = testOutputDir != null ? testOutputDir : "logs";
+
+                    // Create test runner
+                    testRunner = new TestScenarioRunner(world, scenario, stateMonitor,
+                                                         commandSender, outputDir);
+                    world.addObject(testRunner);
+
+                    // Set up completion callback
+                    final Simulator sim = this;
+                    testRunner.setOnComplete(() -> {
+                        testExitCode = testRunner.getExitCode();
+                        if (!testKeepRunning) {
+                            sim.shutdown = true;
+                        } else {
+                            System.out.println("\nTest complete. Simulator still running (use ESC or close window to exit).");
+                        }
+                    });
+
+                } catch (IOException e) {
+                    System.err.println("ERROR: Failed to load test scenario: " + e.getMessage());
+                    shutdown = true;
+                }
             }
         }
 
-        if (COMMUNICATE_WITH_SDK) {
+        // Open ports (only in non-replay mode)
+        if (!REPLAY_MODE) {
             try {
-                udpSDKMavLinkPort.open();
+                autopilotMavLinkPort.open();
             } catch (IOException e) {
-                System.out.println("ERROR: Failed to open UDP link to SDK: " + e.getLocalizedMessage());
+                System.out.println("ERROR: Failed to open MAV port: " + e.getLocalizedMessage());
+                shutdown = true;
+            }
+
+            if (COMMUNICATE_WITH_QGC) {
+                try {
+                    udpGCMavLinkPort.open();
+                } catch (IOException e) {
+                    System.out.println("ERROR: Failed to open UDP link to QGC: " + e.getLocalizedMessage());
+                }
+            }
+
+            if (COMMUNICATE_WITH_SDK) {
+                try {
+                    udpSDKMavLinkPort.open();
+                } catch (IOException e) {
+                    System.out.println("ERROR: Failed to open UDP link to SDK: " + e.getLocalizedMessage());
+                }
             }
         }
 
@@ -483,6 +531,11 @@ public class Simulator implements Runnable {
 
         // Exit with test exit code if running a test scenario
         if (testScenarioPath != null) {
+            // If the scenario never completed, exit 69 (early termination)
+            if (testRunner != null && !testRunner.isCompleted()) {
+                System.err.println("WARNING: Simulator exited before scenario completed");
+                System.exit(69);
+            }
             System.exit(testExitCode);
         }
         System.exit(0);
@@ -567,7 +620,10 @@ public class Simulator implements Runnable {
         boolean needsToPause = false;
         long now;
 
-        if (LOCKSTEP_ENABLED && !DISPLAY_ONLY) {
+        if (REPLAY_MODE) {
+            // Replay mode: just use wall clock time
+            now = System.currentTimeMillis();
+        } else if (LOCKSTEP_ENABLED && !DISPLAY_ONLY) {
             // In lockstep we run every update with a checkFactor of (e.g. 2).
             // This way every second update is just an IO (input/output) run where
             // time is not increased.
@@ -701,6 +757,7 @@ public class Simulator implements Runnable {
     public final static String TEST_STRING = "-test <scenario.json>";
     public final static String TEST_OUTPUT_STRING = "-test-output <dir>";
     public final static String TEST_KEEP_RUNNING_STRING = "-test-keep-running";
+    public final static String REPLAY_STRING = "-replay <flight.csv>";
     public final static String CMD_STRING =
         "java [-Xmx512m] -cp lib/*:out/production/jmavsim.jar me.drton.jmavsim.Simulator";
     public final static String CMD_STRING_JAR = "java [-Xmx512m] -jar jmavsim_run.jar";
@@ -722,7 +779,8 @@ public class Simulator implements Runnable {
                                               DISPLAY_ONLY_STRING + "] [" +
                                               VEHICLE_MODEL_STRING + "] [" +
                                               TEST_STRING + "] [" +
-                                              TEST_OUTPUT_STRING + "]";
+                                              TEST_OUTPUT_STRING + "] [" +
+                                              REPLAY_STRING + "]";
 
     public static void main(String[] args)
     throws InterruptedException, IOException {
@@ -997,6 +1055,15 @@ public class Simulator implements Runnable {
                 }
             } else if (arg.equals("-test-keep-running")) {
                 testKeepRunning = true;
+            } else if (arg.equals("-replay")) {
+                if (i < args.length) {
+                    replayCsvPath = args[i++];
+                    REPLAY_MODE = true;
+                    SHOW_GUI = true;  // replay requires GUI
+                } else {
+                    System.err.println("-replay requires CSV file path as an argument.");
+                    return;
+                }
             } else {
                 System.err.println("Unknown flag: " + arg + ", usage: " + USAGE_STRING);
                 return;
@@ -1012,6 +1079,11 @@ public class Simulator implements Runnable {
             System.err.println(SPEED_FACTOR_STRING + " requires lockstep to be enabled using: '" +
                                LOCKSTEP_STRING + "'");
             return;
+        }
+
+        // Replay mode requires GUI
+        if (REPLAY_MODE) {
+            SHOW_GUI = true;
         }
 
         System.out.println("Options parsed, starting Sim.");

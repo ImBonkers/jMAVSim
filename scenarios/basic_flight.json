@@ -3,6 +3,7 @@
   "description": "Validate basic flight operations including arm, takeoff, hover, goto, and land",
   "globalTimeoutSeconds": 180,
   "steps": [
+    { "type": "reboot", "timeoutSeconds": 45 },
     { "type": "wait", "durationSeconds": 10 },
     { "type": "arm", "timeoutSeconds": 30 },
     { "type": "takeoff", "altitude": 5.0, "tolerance": 0.5, "settleSeconds": 2.0, "timeoutSeconds": 30 },

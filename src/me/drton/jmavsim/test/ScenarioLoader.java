@@ -134,6 +134,72 @@ public class ScenarioLoader {
             case "reboot":
                 return new RebootStep(timeout);
 
+            case "setmode": {
+                String mode = (String) stepMap.getOrDefault("mode", "POSITION");
+                return new SetModeStep(mode, timeout);
+            }
+
+            case "waitfordisarm":
+                return new WaitForDisarmStep(timeout);
+
+            case "setparam": {
+                String param = (String) stepMap.get("param");
+                float value = (float) toDouble(stepMap.getOrDefault("value", 0.0));
+                return new SetParamStep(param, value, timeout);
+            }
+
+            case "orbit": {
+                double radius = toDouble(stepMap.getOrDefault("radius", 5.0));
+                double orbitSpeed = toDouble(stepMap.getOrDefault("speed", 3.0));
+                double orbitAlt = toDouble(stepMap.getOrDefault("altitude", 10.0));
+                int laps = stepMap.containsKey("laps") ?
+                        toInt(stepMap.get("laps")) : 3;
+                return new OrbitStep(radius, orbitSpeed, orbitAlt, laps, timeout);
+            }
+
+            case "disablegps": {
+                double duration = toDouble(stepMap.getOrDefault("durationSeconds", 5.0));
+                return new DisableGpsStep(duration, timeout);
+            }
+
+            case "verifytelemetry": {
+                double duration = toDouble(stepMap.getOrDefault("durationSeconds", 10.0));
+                @SuppressWarnings("unchecked")
+                java.util.List<String> messages = (java.util.List<String>) stepMap.get("expectedMessages");
+                if (messages == null) messages = java.util.Arrays.asList("HEARTBEAT", "ATTITUDE", "LOCAL_POSITION_NED");
+                return new VerifyTelemetryStep(duration, messages, timeout);
+            }
+
+            case "verifynpustream": {
+                double duration = toDouble(stepMap.getOrDefault("durationSeconds", 10.0));
+                @SuppressWarnings("unchecked")
+                java.util.List<String> fields = (java.util.List<String>) stepMap.get("expectedFields");
+                if (fields == null) fields = java.util.Arrays.asList("npu_ms", "npu_fps", "npu_avg");
+                return new VerifyNpuStreamStep(duration, fields, timeout);
+            }
+
+            case "simulatebatteryfailsafe": {
+                int voltPct = stepMap.containsKey("voltagePercent") ?
+                        toInt(stepMap.get("voltagePercent")) : 10;
+                return new SimulateBatteryFailsafeStep(voltPct, timeout);
+            }
+
+            case "injectsensorfailure": {
+                String sensor = (String) stepMap.getOrDefault("sensor", "magnetometer");
+                return new InjectSensorFailureStep(sensor, timeout);
+            }
+
+            case "verifyparamroundtrip": {
+                String param = (String) stepMap.get("param");
+                return new VerifyParamRoundtripStep(param, timeout);
+            }
+
+            case "setnpuload": {
+                int percent = stepMap.containsKey("percent") ?
+                        toInt(stepMap.get("percent")) : 0;
+                return new SetNpuLoadStep(percent, timeout);
+            }
+
             default:
                 throw new IOException("Unknown step type: " + type);
         }
@@ -143,7 +209,25 @@ public class ScenarioLoader {
         if (value instanceof Number) {
             return ((Number) value).doubleValue();
         }
-        return Double.parseDouble(value.toString());
+        String s = value.toString();
+        // Unsubstituted variable placeholder (e.g. "$NPU_LOAD") — default to 0
+        if (s.startsWith("$")) {
+            System.err.println("WARNING: Unsubstituted variable " + s + ", defaulting to 0");
+            return 0.0;
+        }
+        return Double.parseDouble(s);
+    }
+
+    private static int toInt(Object value) {
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        String s = value.toString();
+        if (s.startsWith("$")) {
+            System.err.println("WARNING: Unsubstituted variable " + s + ", defaulting to 0");
+            return 0;
+        }
+        return Integer.parseInt(s);
     }
 
     // Simple JSON parser implementation
