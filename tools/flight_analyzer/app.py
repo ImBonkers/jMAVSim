@@ -523,7 +523,7 @@ def cmp_update(rep, metrics, align_mode, run_indices, scenario):
     if stat_pairs:
         comp_df = compare_runs(stat_pairs)
         key_metrics = [
-            "duration_s", "pos_drift_mean", "pos_drift_max", "alt_error_mean",
+            "duration_s", "origin_dist_mean", "pos_drift_max", "alt_error_mean",
             "roll_std", "pitch_std", "roll_err_rms", "pitch_err_rms",
             "ground_speed_max", "ekf_vel_ratio_mean", "ekf_vel_ratio_max",
             "ekf_pos_horiz_accuracy_mean", "vib_magnitude_max", "clipping_total",
@@ -590,7 +590,7 @@ def stats_update(scenario, run_indices):
         return empty, "No data for this scenario across selected runs."
 
     comp_df = compare_runs(stat_pairs)
-    bar_metrics = ["pos_drift_mean", "pos_drift_max", "roll_std", "pitch_std",
+    bar_metrics = ["origin_dist_mean", "pos_drift_max", "roll_std", "pitch_std",
                    "roll_err_rms", "pitch_err_rms", "ekf_vel_ratio_mean",
                    "vib_magnitude_max", "npu_ms_mean"]
     bar_metrics = [m for m in bar_metrics if m in comp_df.columns]

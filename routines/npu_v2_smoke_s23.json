@@ -1,0 +1,16 @@
+{
+  "board": "npu_v2",
+  "description": "S23 smoke test — 6 reps at NPU 0% to validate new NPU module",
+  "connection": {
+    "type": "serial",
+    "port": "/dev/ttyACM1",
+    "baudRate": 921600
+  },
+  "pauseBetweenRunsSeconds": 5,
+  "variables": {
+    "NPU_LOAD": 0
+  },
+  "scenarios": [
+    { "file": "scenarios/S23_hitl_loop_validation.json", "repetitions": 6 }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "board": "npu_v2",
+  "description": "NPU board v2 regression at 50% NPU load",
+  "connection": {
+    "type": "serial",
+    "port": "/dev/ttyACM1",
+    "baudRate": 921600
+  },
+  "pauseBetweenRunsSeconds": 5,
+  "variables": {
+    "NPU_LOAD": 50
+  },
+  "scenarios": [
+    {
+      "file": "scenarios/S01_hover_calm.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S02_hover_moderate_wind.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S03_hover_strong_wind.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S04_hover_gust.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S05_long_hover.json",
+      "repetitions": 1
+    },
+    {
+      "file": "scenarios/S06_waypoint_calm.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S07_waypoint_crosswind.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S08_complex_mission.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S09_takeoff_land_single.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S11_rapid_attitude_changes.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S12_tight_orbit.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S13_fast_altitude_changes.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S14_hover_degraded_gps.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S15_mission_gps_dropout.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S18_rtl_during_mission.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S19_low_battery_failsafe.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S20_sensor_failure.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S21_mavlink_telemetry_integrity.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S23_hitl_loop_validation.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S25_cross_platform_parity.json",
+      "repetitions": 10
+    },
+    {
+      "file": "scenarios/S26_wind_gps_degradation.json",
+      "repetitions": 10
+    }
+  ]
+}

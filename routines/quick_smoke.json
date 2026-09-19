@@ -1,0 +1,23 @@
+{
+  "board": "pixhawk6x",
+  "description": "Quick smoke test — one run of each basic scenario",
+  "connection": {
+    "type": "serial",
+    "port": "/dev/ttyACM1",
+    "baudRate": 921600
+  },
+  "pauseBetweenRunsSeconds": 3,
+  "variables": {
+    "NPU_LOAD": 0
+  },
+  "scenarios": [
+    {
+      "file": "scenarios/simple_takeoff.json",
+      "repetitions": 1
+    },
+    {
+      "file": "scenarios/basic_flight.json",
+      "repetitions": 1
+    }
+  ]
+}

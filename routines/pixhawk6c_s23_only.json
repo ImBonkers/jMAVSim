@@ -1,0 +1,19 @@
+{
+  "board": "pixhawk6c",
+  "description": "S23 HITL loop validation on Pixhawk 6C — roll bias investigation",
+  "connection": {
+    "type": "serial",
+    "port": "/dev/ttyACM0",
+    "baudRate": 921600
+  },
+  "pauseBetweenRunsSeconds": 5,
+  "variables": {
+    "NPU_LOAD": 0
+  },
+  "scenarios": [
+    {
+      "file": "scenarios/S23_hitl_loop_validation.json",
+      "repetitions": 10
+    }
+  ]
+}

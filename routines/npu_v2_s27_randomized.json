@@ -1,0 +1,23 @@
+{
+  "board": "npu_v2",
+  "description": "S27 randomized duty cycle test — 10 flights with independent random permutations of 30 segments (5 duty levels x 2 tasks x 3 reps), mixed hover/goto.",
+  "connection": {
+    "type": "serial",
+    "port": "/dev/ttyACM1",
+    "baudRate": 921600
+  },
+  "pauseBetweenRunsSeconds": 10,
+  "variables": {},
+  "scenarios": [
+    { "file": "scenarios/S27_npu_duty_randomized_f1.json", "repetitions": 1 },
+    { "file": "scenarios/S27_npu_duty_randomized_f2.json", "repetitions": 1 },
+    { "file": "scenarios/S27_npu_duty_randomized_f3.json", "repetitions": 1 },
+    { "file": "scenarios/S27_npu_duty_randomized_f4.json", "repetitions": 1 },
+    { "file": "scenarios/S27_npu_duty_randomized_f5.json", "repetitions": 1 },
+    { "file": "scenarios/S27_npu_duty_randomized_f6.json", "repetitions": 1 },
+    { "file": "scenarios/S27_npu_duty_randomized_f7.json", "repetitions": 1 },
+    { "file": "scenarios/S27_npu_duty_randomized_f8.json", "repetitions": 1 },
+    { "file": "scenarios/S27_npu_duty_randomized_f9.json", "repetitions": 1 },
+    { "file": "scenarios/S27_npu_duty_randomized_f10.json", "repetitions": 1 }
+  ]
+}

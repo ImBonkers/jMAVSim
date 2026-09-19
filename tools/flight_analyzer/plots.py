@@ -177,7 +177,7 @@ def plot_stats_comparison(stats_df: pd.DataFrame, metrics: Optional[list[str]] =
                           output: Optional[Path] = None, show: bool = False):
     """Bar chart comparing statistics across runs."""
     if metrics is None:
-        metrics = ["pos_drift_mean", "pos_drift_max", "roll_std", "pitch_std",
+        metrics = ["origin_dist_mean", "pos_drift_max", "roll_std", "pitch_std",
                     "ekf_vel_ratio_mean", "vib_magnitude_max", "npu_ms_mean"]
     metrics = [m for m in metrics if m in stats_df.columns]
 

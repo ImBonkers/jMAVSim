@@ -1,0 +1,39 @@
+{
+  "board": "npu_v2",
+  "description": "Full regression suite for NPU board v2",
+  "connection": {
+    "type": "serial",
+    "port": "/dev/ttyACM1",
+    "baudRate": 921600
+  },
+  "javaOpts": [
+    "--add-opens",
+    "java.desktop/sun.awt=ALL-UNNAMED",
+    "--add-opens",
+    "java.desktop/sun.java2d=ALL-UNNAMED",
+    "--enable-native-access=ALL-UNNAMED"
+  ],
+  "jar": "out/production/jmavsim_run.jar",
+  "pauseBetweenRunsSeconds": 5,
+  "variables": {
+    "NPU_LOAD": 50
+  },
+  "scenarios": [
+    {
+      "file": "scenarios/simple_takeoff.json",
+      "repetitions": 3
+    },
+    {
+      "file": "scenarios/basic_flight.json",
+      "repetitions": 3
+    },
+    {
+      "file": "scenarios/waypoint_mission.json",
+      "repetitions": 2
+    },
+    {
+      "file": "scenarios/wind_disturbance.json",
+      "repetitions": 2
+    }
+  ]
+}

@@ -259,7 +259,7 @@ def analyze(ctx, run_id, scenario, rep):
     # Pick key metrics to display
     key_metrics = [
         ("duration_s", "Duration (s)", ".1f"),
-        ("pos_drift_mean", "Pos drift mean (m)", ".3f"),
+        ("origin_dist_mean", "Pos drift mean (m)", ".3f"),
         ("pos_drift_max", "Pos drift max (m)", ".3f"),
         ("alt_error_mean", "Alt error std (m)", ".3f"),
         ("roll_std", "Roll std (deg)", ".2f"),
@@ -349,7 +349,7 @@ def compare(ctx, run_ids, scenario, rep, columns, output):
     for label in comp_df.index:
         table.add_column(str(label), justify="right")
 
-    for attr in ["duration_s", "pos_drift_mean", "pos_drift_max",
+    for attr in ["duration_s", "origin_dist_mean", "pos_drift_max",
                   "roll_std", "pitch_std", "roll_err_rms", "pitch_err_rms",
                   "ekf_vel_ratio_mean", "vib_magnitude_max", "npu_ms_mean"]:
         if attr in comp_df.columns:

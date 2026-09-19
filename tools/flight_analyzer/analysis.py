@@ -13,7 +13,7 @@ class FlightStats:
     duration_s: float
 
     # Position hold quality (NED)
-    pos_drift_mean: float  # mean 2D distance from hover center
+    origin_dist_mean: float  # mean 2D distance from hover center
     pos_drift_max: float
     pos_drift_std: float
     alt_error_mean: float
@@ -94,7 +94,7 @@ def compute_flight_stats(df: pd.DataFrame) -> FlightStats:
 
     return FlightStats(
         duration_s=dur,
-        pos_drift_mean=_safe(drift_2d, lambda s: s.mean()),
+        origin_dist_mean=_safe(drift_2d, lambda s: s.mean()),
         pos_drift_max=_safe(drift_2d, lambda s: s.max()),
         pos_drift_std=_safe(drift_2d, lambda s: s.std()),
         alt_error_mean=_safe(alt, lambda s: s.std()),
