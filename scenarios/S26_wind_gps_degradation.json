@@ -1,0 +1,87 @@
+{
+  "name": "S26_wind_gps_degradation",
+  "description": "Hover: 6 m/s wind + GPS at 2 Hz. Combined environmental stress across NPU levels.",
+  "globalTimeoutSeconds": 180,
+  "steps": [
+    {
+      "type": "reboot",
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": "$NPU_LOAD",
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "setParam",
+      "param": "SIM_GPS_RATE",
+      "value": 2
+    },
+    {
+      "type": "setParam",
+      "param": "SIM_GPS_NOISE",
+      "value": 1.5
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 3
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 10.0,
+      "tolerance": 1.0,
+      "settleSeconds": 3.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "setWind",
+      "x": 6,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 3
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 30,
+      "maxDrift": 2.5,
+      "timeoutSeconds": 45,
+      "critical": false
+    },
+    {
+      "type": "setWind",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "type": "land",
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10
+    },
+    {
+      "type": "setParam",
+      "param": "SIM_GPS_RATE",
+      "value": 10
+    },
+    {
+      "type": "setParam",
+      "param": "SIM_GPS_NOISE",
+      "value": 0.0
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "name": "S21_mavlink_telemetry_integrity",
+  "description": "Verify all MAVLink message types during hover. Check rates and completeness.",
+  "globalTimeoutSeconds": 120,
+  "steps": [
+    {
+      "type": "reboot",
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": "$NPU_LOAD",
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 10.0,
+      "tolerance": 0.5,
+      "settleSeconds": 3.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "verifyTelemetry",
+      "durationSeconds": 30,
+      "expectedMessages": [
+        "HEARTBEAT",
+        "ATTITUDE",
+        "LOCAL_POSITION_NED",
+        "SYS_STATUS",
+        "ESTIMATOR_STATUS",
+        "VIBRATION",
+        "SYSTEM_TIME"
+      ],
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "land",
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10
+    }
+  ]
+}

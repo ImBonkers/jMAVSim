@@ -1,0 +1,61 @@
+{
+  "name": "S24_npu_data_exchange",
+  "description": "NPU inference results passed to PX4. Verify data format, timing, no corruption under varying inference rates.",
+  "globalTimeoutSeconds": 180,
+  "steps": [
+    {
+      "type": "reboot",
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 25,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 10.0,
+      "tolerance": 0.5,
+      "settleSeconds": 3.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "verifyNpuStream",
+      "durationSeconds": 30,
+      "expectedFields": [
+        "npu_ms",
+        "npu_fps",
+        "npu_avg"
+      ],
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 10,
+      "maxDrift": 0.5,
+      "timeoutSeconds": 20,
+      "critical": false
+    },
+    {
+      "type": "land",
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10
+    }
+  ]
+}

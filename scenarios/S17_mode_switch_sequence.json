@@ -1,0 +1,80 @@
+{
+  "name": "S17_mode_switch_sequence",
+  "description": "Sequential mode transitions: Altitude -> Position -> Mission -> RTL. Measures transition timing and transients.",
+  "globalTimeoutSeconds": 240,
+  "steps": [
+    {
+      "type": "reboot",
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": "$NPU_LOAD",
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 10.0,
+      "tolerance": 0.5,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "setMode",
+      "mode": "ALTITUDE",
+      "timeoutSeconds": 10
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "setMode",
+      "mode": "POSITION",
+      "timeoutSeconds": 10
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 5,
+      "maxDrift": 0.5,
+      "timeoutSeconds": 15,
+      "critical": false
+    },
+    {
+      "type": "setMode",
+      "mode": "OFFBOARD",
+      "timeoutSeconds": 10
+    },
+    {
+      "type": "goto",
+      "x": 15,
+      "y": 0,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "setMode",
+      "mode": "RTL",
+      "timeoutSeconds": 10
+    },
+    {
+      "type": "waitForDisarm",
+      "timeoutSeconds": 60
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10,
+      "force": true
+    }
+  ]
+}

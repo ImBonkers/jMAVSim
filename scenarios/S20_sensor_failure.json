@@ -1,0 +1,59 @@
+{
+  "name": "S20_sensor_failure",
+  "description": "Primary magnetometer failure injected during hover. Tests PX4 failover timing under NPU contention.",
+  "globalTimeoutSeconds": 180,
+  "steps": [
+    {
+      "type": "reboot",
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": "$NPU_LOAD",
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 10.0,
+      "tolerance": 0.5,
+      "settleSeconds": 3.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 10,
+      "maxDrift": 0.5,
+      "timeoutSeconds": 20,
+      "critical": false
+    },
+    {
+      "type": "injectSensorFailure",
+      "sensor": "magnetometer",
+      "timeoutSeconds": 10
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 20,
+      "maxDrift": 2.0,
+      "timeoutSeconds": 35,
+      "critical": false
+    },
+    {
+      "type": "land",
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10
+    }
+  ]
+}

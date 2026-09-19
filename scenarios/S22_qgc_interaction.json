@@ -1,0 +1,64 @@
+{
+  "name": "S22_qgc_interaction",
+  "description": "Mission upload, parameter read/write, mode switches from QGC. Verify round-trip correctness and timing.",
+  "globalTimeoutSeconds": 180,
+  "steps": [
+    {
+      "type": "reboot",
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": "$NPU_LOAD",
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "verifyParamRoundtrip",
+      "param": "MC_ROLL_TC",
+      "timeoutSeconds": 15
+    },
+    {
+      "type": "verifyParamRoundtrip",
+      "param": "MC_PITCH_TC",
+      "timeoutSeconds": 15
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 10.0,
+      "tolerance": 0.5,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "setMode",
+      "mode": "POSITION",
+      "timeoutSeconds": 10
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "setMode",
+      "mode": "OFFBOARD",
+      "timeoutSeconds": 10
+    },
+    {
+      "type": "land",
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "name": "S11_rapid_attitude_changes",
+  "description": "Rapid position step inputs to stress the attitude controller. Tests peak controller demand under NPU contention.",
+  "globalTimeoutSeconds": 240,
+  "steps": [
+    {
+      "type": "reboot",
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": "$NPU_LOAD",
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 15.0,
+      "tolerance": 0.5,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "goto",
+      "x": 10,
+      "y": 0,
+      "z": -15,
+      "tolerance": 1.0,
+      "settleSeconds": 1.0,
+      "timeoutSeconds": 15
+    },
+    {
+      "type": "goto",
+      "x": -10,
+      "y": 0,
+      "z": -15,
+      "tolerance": 1.0,
+      "settleSeconds": 1.0,
+      "timeoutSeconds": 15
+    },
+    {
+      "type": "goto",
+      "x": 0,
+      "y": 10,
+      "z": -15,
+      "tolerance": 1.0,
+      "settleSeconds": 1.0,
+      "timeoutSeconds": 15
+    },
+    {
+      "type": "goto",
+      "x": 0,
+      "y": -10,
+      "z": -15,
+      "tolerance": 1.0,
+      "settleSeconds": 1.0,
+      "timeoutSeconds": 15
+    },
+    {
+      "type": "goto",
+      "x": 10,
+      "y": 10,
+      "z": -15,
+      "tolerance": 1.0,
+      "settleSeconds": 1.0,
+      "timeoutSeconds": 15
+    },
+    {
+      "type": "goto",
+      "x": -10,
+      "y": -10,
+      "z": -15,
+      "tolerance": 1.0,
+      "settleSeconds": 1.0,
+      "timeoutSeconds": 15
+    },
+    {
+      "type": "goto",
+      "x": 0,
+      "y": 0,
+      "z": -15,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 15
+    },
+    {
+      "type": "land",
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10
+    }
+  ]
+}

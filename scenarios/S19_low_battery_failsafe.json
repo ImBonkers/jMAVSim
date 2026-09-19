@@ -1,0 +1,52 @@
+{
+  "name": "S19_low_battery_failsafe",
+  "description": "Battery failsafe triggered during hover. Tests autonomous failsafe under NPU contention.",
+  "globalTimeoutSeconds": 240,
+  "steps": [
+    {
+      "type": "reboot",
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": "$NPU_LOAD",
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 10.0,
+      "tolerance": 0.5,
+      "settleSeconds": 3.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 10,
+      "maxDrift": 0.5,
+      "timeoutSeconds": 20,
+      "critical": false
+    },
+    {
+      "type": "simulateBatteryFailsafe",
+      "voltagePercent": 10,
+      "timeoutSeconds": 10
+    },
+    {
+      "type": "waitForDisarm",
+      "timeoutSeconds": 90
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10,
+      "force": true
+    }
+  ]
+}

@@ -1,0 +1,166 @@
+{
+  "name": "S10_rapid_takeoff_land_cycle",
+  "description": "5 consecutive takeoff-to-5m, 5s hold, land cycles. Tests resource cleanup and stability across repetitions.",
+  "globalTimeoutSeconds": 600,
+  "steps": [
+    {
+      "type": "reboot",
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": "$NPU_LOAD",
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 5.0,
+      "tolerance": 0.5,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 5,
+      "maxDrift": 0.5,
+      "timeoutSeconds": 15
+    },
+    {
+      "type": "land",
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 10
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 5.0,
+      "tolerance": 0.5,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 5,
+      "maxDrift": 0.5,
+      "timeoutSeconds": 15
+    },
+    {
+      "type": "land",
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 10
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 5.0,
+      "tolerance": 0.5,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 5,
+      "maxDrift": 0.5,
+      "timeoutSeconds": 15
+    },
+    {
+      "type": "land",
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 10
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 5.0,
+      "tolerance": 0.5,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 5,
+      "maxDrift": 0.5,
+      "timeoutSeconds": 15
+    },
+    {
+      "type": "land",
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 10
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 5.0,
+      "tolerance": 0.5,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 5,
+      "maxDrift": 0.5,
+      "timeoutSeconds": 15
+    },
+    {
+      "type": "land",
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10
+    }
+  ]
+}

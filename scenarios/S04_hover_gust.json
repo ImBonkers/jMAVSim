@@ -1,0 +1,118 @@
+{
+  "name": "S04_hover_gust",
+  "description": "Position hold with periodic gusts (0-10 m/s). Tests transient response under varying NPU load.",
+  "globalTimeoutSeconds": 180,
+  "steps": [
+    {
+      "type": "reboot",
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": "$NPU_LOAD",
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 10.0,
+      "tolerance": 0.5,
+      "settleSeconds": 3.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 5,
+      "maxDrift": 0.3,
+      "timeoutSeconds": 10,
+      "critical": false
+    },
+    {
+      "type": "setWind",
+      "x": 1,
+      "y": 0,
+      "z": 0,
+      "minStrength": 0,
+      "maxStrength": 10
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 15,
+      "maxDrift": 1.5,
+      "timeoutSeconds": 25,
+      "critical": false
+    },
+    {
+      "type": "setWind",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "setWind",
+      "x": 0,
+      "y": 1,
+      "z": 0,
+      "minStrength": 0,
+      "maxStrength": 10
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 15,
+      "maxDrift": 1.5,
+      "timeoutSeconds": 25,
+      "critical": false
+    },
+    {
+      "type": "setWind",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "setWind",
+      "x": 1,
+      "y": 1,
+      "z": 0,
+      "minStrength": 0,
+      "maxStrength": 10
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 15,
+      "maxDrift": 1.5,
+      "timeoutSeconds": 25,
+      "critical": false
+    },
+    {
+      "type": "setWind",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "type": "land",
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10
+    }
+  ]
+}

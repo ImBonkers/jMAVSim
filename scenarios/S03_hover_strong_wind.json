@@ -1,0 +1,62 @@
+{
+  "name": "S03_hover_strong_wind",
+  "description": "Position hold at 10m under 12 m/s steady wind. Near-limit controller stress.",
+  "globalTimeoutSeconds": 120,
+  "steps": [
+    {
+      "type": "reboot",
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": "$NPU_LOAD",
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 10.0,
+      "tolerance": 0.5,
+      "settleSeconds": 3.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "setWind",
+      "x": 12,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 3
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 30,
+      "maxDrift": 1.5,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "setWind",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "type": "land",
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10
+    }
+  ]
+}

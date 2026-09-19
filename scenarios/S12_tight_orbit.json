@@ -1,0 +1,57 @@
+{
+  "name": "S12_tight_orbit",
+  "description": "Approximate 3m radius orbit at 10m altitude. Sustained high controller effort with continuous corrections.",
+  "globalTimeoutSeconds": 240,
+  "steps": [
+    {
+      "type": "reboot",
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": "$NPU_LOAD",
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 10.0,
+      "tolerance": 0.5,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "orbit",
+      "radius": 3.0,
+      "speed": 3.0,
+      "altitude": 10.0,
+      "laps": 5,
+      "timeoutSeconds": 120
+    },
+    {
+      "type": "goto",
+      "x": 0,
+      "y": 0,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "land",
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10
+    }
+  ]
+}

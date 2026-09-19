@@ -1,0 +1,92 @@
+{
+  "name": "S07_waypoint_crosswind",
+  "description": "4-waypoint square under 6 m/s crosswind. Tests navigation accuracy under disturbance + NPU load.",
+  "globalTimeoutSeconds": 300,
+  "steps": [
+    {
+      "type": "reboot",
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": "$NPU_LOAD",
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 15.0,
+      "tolerance": 0.5,
+      "settleSeconds": 3.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "setWind",
+      "x": 0,
+      "y": 6,
+      "z": 0
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 3
+    },
+    {
+      "type": "goto",
+      "x": 30,
+      "y": 0,
+      "z": -15,
+      "tolerance": 1.5,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "goto",
+      "x": 30,
+      "y": 30,
+      "z": -15,
+      "tolerance": 1.5,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "goto",
+      "x": 0,
+      "y": 30,
+      "z": -15,
+      "tolerance": 1.5,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "goto",
+      "x": 0,
+      "y": 0,
+      "z": -15,
+      "tolerance": 1.5,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "setWind",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "type": "land",
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10
+    }
+  ]
+}

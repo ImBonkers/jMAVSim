@@ -1,0 +1,743 @@
+{
+  "name": "S27_npu_duty_randomized_f1",
+  "description": "Randomized NPU duty cycle test. Flight 1/6: 30 segments (5 duty x 2 tasks x 3 reps), purely shuffled.",
+  "globalTimeoutSeconds": 1500,
+  "segments": [
+    {
+      "duty": 50,
+      "task": "hover"
+    },
+    {
+      "duty": 25,
+      "task": "hover"
+    },
+    {
+      "duty": 25,
+      "task": "hover"
+    },
+    {
+      "duty": 0,
+      "task": "hover"
+    },
+    {
+      "duty": 100,
+      "task": "hover"
+    },
+    {
+      "duty": 0,
+      "task": "goto",
+      "waypoint": [
+        20,
+        20,
+        -10
+      ]
+    },
+    {
+      "duty": 75,
+      "task": "goto",
+      "waypoint": [
+        0,
+        20,
+        -10
+      ]
+    },
+    {
+      "duty": 75,
+      "task": "goto",
+      "waypoint": [
+        0,
+        -20,
+        -10
+      ]
+    },
+    {
+      "duty": 100,
+      "task": "goto",
+      "waypoint": [
+        -20,
+        -20,
+        -10
+      ]
+    },
+    {
+      "duty": 0,
+      "task": "goto",
+      "waypoint": [
+        0,
+        -20,
+        -10
+      ]
+    },
+    {
+      "duty": 25,
+      "task": "goto",
+      "waypoint": [
+        20,
+        -20,
+        -10
+      ]
+    },
+    {
+      "duty": 0,
+      "task": "hover"
+    },
+    {
+      "duty": 25,
+      "task": "goto",
+      "waypoint": [
+        20,
+        20,
+        -10
+      ]
+    },
+    {
+      "duty": 0,
+      "task": "hover"
+    },
+    {
+      "duty": 100,
+      "task": "hover"
+    },
+    {
+      "duty": 50,
+      "task": "hover"
+    },
+    {
+      "duty": 50,
+      "task": "goto",
+      "waypoint": [
+        20,
+        -20,
+        -10
+      ]
+    },
+    {
+      "duty": 100,
+      "task": "hover"
+    },
+    {
+      "duty": 75,
+      "task": "hover"
+    },
+    {
+      "duty": 50,
+      "task": "hover"
+    },
+    {
+      "duty": 50,
+      "task": "goto",
+      "waypoint": [
+        20,
+        0,
+        -10
+      ]
+    },
+    {
+      "duty": 75,
+      "task": "goto",
+      "waypoint": [
+        20,
+        -20,
+        -10
+      ]
+    },
+    {
+      "duty": 75,
+      "task": "hover"
+    },
+    {
+      "duty": 25,
+      "task": "hover"
+    },
+    {
+      "duty": 100,
+      "task": "goto",
+      "waypoint": [
+        0,
+        20,
+        -10
+      ]
+    },
+    {
+      "duty": 75,
+      "task": "hover"
+    },
+    {
+      "duty": 100,
+      "task": "goto",
+      "waypoint": [
+        20,
+        0,
+        -10
+      ]
+    },
+    {
+      "duty": 50,
+      "task": "goto",
+      "waypoint": [
+        -20,
+        20,
+        -10
+      ]
+    },
+    {
+      "duty": 25,
+      "task": "goto",
+      "waypoint": [
+        20,
+        20,
+        -10
+      ]
+    },
+    {
+      "duty": 0,
+      "task": "goto",
+      "waypoint": [
+        0,
+        20,
+        -10
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "type": "reboot",
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "wait",
+      "durationSeconds": 5
+    },
+    {
+      "type": "arm",
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "takeoff",
+      "altitude": 10.0,
+      "tolerance": 0.5,
+      "settleSeconds": 3.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 5,
+      "maxDrift": 0.5,
+      "timeoutSeconds": 15,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 50,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 30,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 40,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 25,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 30,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 40,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 25,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 30,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 40,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 0,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 30,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 40,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 100,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 30,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 40,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 0,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "goto",
+      "x": 20,
+      "y": 20,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 20,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 30,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 75,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "goto",
+      "x": 0,
+      "y": 20,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 20,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 30,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 75,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "goto",
+      "x": 0,
+      "y": -20,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 20,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 30,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 100,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "goto",
+      "x": -20,
+      "y": -20,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 20,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 30,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 0,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "goto",
+      "x": 0,
+      "y": -20,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 20,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 30,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 25,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "goto",
+      "x": 20,
+      "y": -20,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 20,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 30,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 0,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 30,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 40,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 25,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "goto",
+      "x": 20,
+      "y": 20,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 20,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 30,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 0,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 30,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 40,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 100,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 30,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 40,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 50,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 30,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 40,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 50,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "goto",
+      "x": 20,
+      "y": -20,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 20,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 30,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 100,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 30,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 40,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 75,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 30,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 40,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 50,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 30,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 40,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 50,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "goto",
+      "x": 20,
+      "y": 0,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 20,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 30,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 75,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "goto",
+      "x": 20,
+      "y": -20,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 20,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 30,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 75,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 30,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 40,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 25,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 30,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 40,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 100,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "goto",
+      "x": 0,
+      "y": 20,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 20,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 30,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 75,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 30,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 40,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 100,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "goto",
+      "x": 20,
+      "y": 0,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 20,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 30,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 50,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "goto",
+      "x": -20,
+      "y": 20,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 20,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 30,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 25,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "goto",
+      "x": 20,
+      "y": 20,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 20,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 30,
+      "critical": false
+    },
+    {
+      "type": "setNpuLoad",
+      "percent": 0,
+      "timeoutSeconds": 5
+    },
+    {
+      "type": "goto",
+      "x": 0,
+      "y": 20,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "hover",
+      "durationSeconds": 20,
+      "maxDrift": 1.0,
+      "timeoutSeconds": 30,
+      "critical": false
+    },
+    {
+      "type": "goto",
+      "x": 0,
+      "y": 0,
+      "z": -10,
+      "tolerance": 1.0,
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 45
+    },
+    {
+      "type": "land",
+      "settleSeconds": 2.0,
+      "timeoutSeconds": 30
+    },
+    {
+      "type": "disarm",
+      "timeoutSeconds": 10
+    }
+  ]
+}

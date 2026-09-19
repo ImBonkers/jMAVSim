@@ -1,0 +1,26 @@
+{
+  "name": "S27_npu_toggle",
+  "description": "Toggle NPU inference on/off every 30s during waypoint mission. Tests transition overhead and resource release.",
+  "globalTimeoutSeconds": 360,
+  "steps": [
+    { "type": "reboot", "timeoutSeconds": 45 },
+    { "type": "wait", "durationSeconds": 5 },
+    { "type": "arm", "timeoutSeconds": 30 },
+    { "type": "takeoff", "altitude": 15.0, "tolerance": 0.5, "settleSeconds": 2.0, "timeoutSeconds": 30 },
+
+    { "type": "setNpuLoad", "percent": 50, "timeoutSeconds": 5 },
+    { "type": "goto", "x": 30, "y": 0, "z": -15, "tolerance": 1.0, "settleSeconds": 1.0, "timeoutSeconds": 45 },
+
+    { "type": "setNpuLoad", "percent": 0, "timeoutSeconds": 5 },
+    { "type": "goto", "x": 30, "y": 30, "z": -15, "tolerance": 1.0, "settleSeconds": 1.0, "timeoutSeconds": 45 },
+
+    { "type": "setNpuLoad", "percent": 100, "timeoutSeconds": 5 },
+    { "type": "goto", "x": 0, "y": 30, "z": -15, "tolerance": 1.0, "settleSeconds": 1.0, "timeoutSeconds": 45 },
+
+    { "type": "setNpuLoad", "percent": 0, "timeoutSeconds": 5 },
+    { "type": "goto", "x": 0, "y": 0, "z": -15, "tolerance": 1.0, "settleSeconds": 2.0, "timeoutSeconds": 45 },
+
+    { "type": "land", "settleSeconds": 2.0, "timeoutSeconds": 30 },
+    { "type": "disarm", "timeoutSeconds": 10 }
+  ]
+}
